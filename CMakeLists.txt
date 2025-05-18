@@ -30,6 +30,8 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 option(CZZE_BUILD_TESTS "Build tests" OFF)
 
+find_package(cppzmq REQUIRED)
+
 add_subdirectory(src)
 
 if(CZZE_BUILD_TESTS)
