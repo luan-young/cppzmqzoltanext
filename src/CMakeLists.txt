@@ -1,9 +1,11 @@
 set(CZZE_SOURCES
 	poller.cpp
+	loop.cpp
 )
 
 set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/poller.h
+	../include/cppzmqzoltanext/loop.h
 )
 
 set(CZZE_PRIVATE_HEADERS
