@@ -20,6 +20,7 @@ void poller_t::remove(zmq::socket_ref socket)
 
 zmq::socket_ref poller_t::wait(std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/)
 {
+    _terminated = false;
     try {
         auto const n_items = zmq::poll(_poll_items, timeout);
         if (n_items > 0) {
@@ -31,13 +32,14 @@ zmq::socket_ref poller_t::wait(std::chrono::milliseconds timeout /*= std::chrono
         }
     }
     catch(zmq::error_t const&){
-        // mTerminated = true;
+        _terminated = true;
     }
     return zmq::socket_ref{};
 }
 
 std::vector<zmq::socket_ref> poller_t::wait_all(std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/)
 {
+    _terminated = false;
     std::vector<zmq::socket_ref> result{};
     try {
         auto const n_items = zmq::poll(_poll_items, timeout);
@@ -51,7 +53,7 @@ std::vector<zmq::socket_ref> poller_t::wait_all(std::chrono::milliseconds timeou
         }
     }
     catch(zmq::error_t const&){
-        // mTerminated = true;
+        _terminated = true;
     }
     return result;
 }

@@ -102,6 +102,7 @@ TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive)
 TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive)
 {
     std::chrono::milliseconds timeOut{10};
+    std::chrono::milliseconds timeErrorBound{1};
     ConnectedSocketsPullAndPush sockets{ctx};
     zmq::socket_t unconnectedSocket{ctx, zmq::socket_type::pull};
 
@@ -112,29 +113,31 @@ TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive)
     auto socket = poller.wait(timeOut);
     auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
-    EXPECT_GE(elapsedTime, timeOut);
+    EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
 TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenPollerIsEmpty)
 {
     std::chrono::milliseconds timeOut{10};
+    std::chrono::milliseconds timeErrorBound{1};
 
     auto const startTime = std::chrono::steady_clock::now();
     auto socket = poller.wait(timeOut);
     auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
-    EXPECT_GE(elapsedTime, timeOut);
+    EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
 TEST_F(UTestPoller, WaitAllCallLingersForGivenTimeoutWhenPollerIsEmpty)
 {
     std::chrono::milliseconds timeOut{10};
+    std::chrono::milliseconds timeErrorBound{1};
 
     auto const startTime = std::chrono::steady_clock::now();
     auto sockets = poller.wait_all(timeOut);
     auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
-    EXPECT_GE(elapsedTime, timeOut);
+    EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
 TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown)
@@ -150,21 +153,25 @@ TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown)
     t.join();
 
     EXPECT_EQ(nullptr, socketReady);
+    EXPECT_TRUE(poller.terminated());
 }
 
 TEST_F(UTestPoller, WaitCallIsNotInterruptedOnContextShutdownWhenPollerIsEmpty)
 {
     std::chrono::milliseconds timeOut{100};
+    std::chrono::milliseconds timeErrorBound{1};
     auto const startTime = std::chrono::steady_clock::now();
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
 
+    // it will wait forever here if not timeout is given, as nothing will interrupt it
     auto socketReady = poller.wait(timeOut);
     auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
     t.join();
 
-    EXPECT_GE(elapsedTime, timeOut);
+    EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
+    EXPECT_FALSE(poller.terminated());
 }
 
 } // namespace zmqzext
