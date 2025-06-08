@@ -29,8 +29,18 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 option(CZZE_BUILD_TESTS "Build tests" OFF)
+option(CZZE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 
 find_package(cppzmq REQUIRED)
+
+if(CZZE_ENABLE_ASAN)
+    message(STATUS "Enabling AddressSanitizer")
+
+    set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ASAN_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
+
+endif()
 
 add_subdirectory(src)
 
