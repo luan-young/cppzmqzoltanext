@@ -272,21 +272,21 @@ TEST_F(UTestLoop, TimerHandlerWithZeroOccurencesIsCalledForever)
     ASSERT_GT(timersHandlers.timersHandled.size(), minExpectedOccurences);
 }
 
-// TEST_F(UTestLoop, SupportsAddingATimerInATimerHandler)
-// {
-//     std::size_t const timerOcurrences{1};
-//     std::chrono::milliseconds timerTimeout{1};
-//     TimersHandlers timersHandlers{};
+TEST_F(UTestLoop, SupportsAddingATimerInATimerHandler)
+{
+    std::size_t const timerOcurrences{1};
+    std::chrono::milliseconds timerTimeout{1};
+    TimersHandlers timersHandlers{};
 
-//     auto const timerId = loop.add_timer(timerTimeout,
-//                                         timerOcurrences,
-//                                         std::bind(&TimersHandlers::timerHandlerAddTimer, &timersHandlers, _1, _2));
+    auto const timerId = loop.add_timer(timerTimeout,
+                                        timerOcurrences,
+                                        std::bind(&TimersHandlers::timerHandlerAddTimer, &timersHandlers, _1, _2));
 
-//     loop.run();
+    loop.run();
 
-//     ASSERT_EQ(1, timersHandlers.timersAdded.size());
-//     EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId, timersHandlers.timersAdded[0]));
-// }
+    ASSERT_EQ(1, timersHandlers.timersAdded.size());
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId, timersHandlers.timersAdded[0]));
+}
 
 TEST_F(UTestLoop, SupportsRemovingTheTimerWhileItsHandlerIsExecuting)
 {

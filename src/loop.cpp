@@ -13,7 +13,7 @@ timer_id_t loop_t::add_timer(std::chrono::milliseconds timeout, std::size_t occu
 {
     auto const timer_id = ++_last_timer_id; // TODO: check timer id is unique and keep iterating until finds a unique one
     auto const next_occurence = now() + timeout;
-    _timer_handlers.push_back(timer_t {timer_id, timeout, occurences, next_occurence, fn, false });
+    _timer_handlers.push_back(timer_t{timer_id, timeout, occurences, next_occurence, fn, false});
     return timer_id;
 }
 
@@ -57,9 +57,7 @@ void loop_t::run()
             if (timer_it->removed == false && current_time >= timer_it->next_occurence) {
                 should_continue = timer_it->handler(*this, timer_it->id);
                 if (timer_it->occurences > 0 && --timer_it->occurences == 0) {
-                    *timer_it = _timer_handlers.back();
-                    _timer_handlers.pop_back();
-                    continue;
+                    timer_it = _timer_handlers.erase(timer_it);
                 }
                 else {
                     timer_it->next_occurence += timer_it->timeout;
@@ -100,10 +98,7 @@ loop_t::time_milliseconds_t loop_t::find_next_timeout(time_point_t const &actual
 
 void loop_t::removeFlagedTimers()
 {
-    _timer_handlers.erase(std::remove_if(_timer_handlers.begin(),
-                                         _timer_handlers.end(),
-                                         [](timer_t const &timer) { return timer.removed; }),
-                          _timer_handlers.end());
+    _timer_handlers.remove_if([](timer_t const &timer) { return timer.removed; });
 }
 
 template<class Rep, class Period>

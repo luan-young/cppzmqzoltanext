@@ -3,8 +3,8 @@
 #include <chrono>
 #include <cstddef>
 #include <functional>
+#include <list>
 #include <map>
-#include <vector>
 
 #include <zmq.hpp>
 
@@ -50,7 +50,7 @@ private:
 private:
     poller_t _poller;
     std::map<zmq::socket_ref, fn_socket_handler_t> _socket_handlers;
-    std::vector<timer_t> _timer_handlers;
+    std::list<timer_t> _timer_handlers;
     timer_id_t _last_timer_id{ 0 };
 };
 
