@@ -1,4 +1,5 @@
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 #include <thread>
@@ -121,6 +122,16 @@ struct ConnectedSocketsWithHandlers
         return true;
     }
 
+    bool socketHandlerAddOtherSocket(zmqzext::loop_t &loop, zmq::socket_ref socket, zmq::socket_ref otherSocket)
+    {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        auto msg = recv_now_or_throw(socket);
+        messages.emplace_back(std::move(msg));
+        loop.add(otherSocket, std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, this, _1, _2));
+        return true;
+    }
+
     bool socketHandlerRemoveSocketBeingHandled(zmqzext::loop_t &loop, zmq::socket_ref socket)
     {
         auto msg = recv_now_or_throw(socket);
@@ -148,6 +159,59 @@ struct ConnectedSocketsWithHandlers
             loop.remove(*socketPull2);
             socketPull2.reset();
         }
+        return true;
+    }
+
+    bool socketHandlerRemoveTimer(zmqzext::loop_t &loop, zmq::socket_ref socket, zmqzext::timer_id_t const& timerToRevmove)
+    {
+        auto msg = recv_now_or_throw(socket);
+        messages.emplace_back(std::move(msg));
+        loop.remove_timer(timerToRevmove);
+        return true;
+    }
+};
+
+struct TimersHandlers
+{
+    std::vector<zmqzext::timer_id_t> timersHandled;
+    std::vector<zmqzext::timer_id_t> timersAdded;
+
+    bool timerHandler(zmqzext::loop_t&, zmqzext::timer_id_t timerId)
+    {
+        timersHandled.push_back(timerId);
+        return true;
+    }
+
+    bool timerHandlerAddTimer(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId)
+    {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        timersHandled.push_back(timerId);
+        timersAdded.push_back(
+            loop.add_timer(std::chrono::milliseconds{2}, 1, std::bind(&TimersHandlers::timerHandler, this, _1, _2)));
+        return true;
+    }
+
+    bool timerHandlerRemoveTimer(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, zmqzext::timer_id_t const& timerToRevmove)
+    {
+        timersHandled.push_back(timerId);
+        loop.remove_timer(timerToRevmove);
+        return true;
+    }
+
+    bool timerHandlerRemoveSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, std::unique_ptr<zmq::socket_t>& pSocket)
+    {
+        timersHandled.push_back(timerId);
+        loop.remove(*pSocket);
+        pSocket.reset();
+        return true;
+    }
+
+    bool timerHandlerSendFromSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, zmq::socket_ref socket)
+    {
+        std::string const msgStrToSend{"Message from timer"};
+        timersHandled.push_back(timerId);
+        send_now_or_throw(socket, msgStrToSend);
         return true;
     }
 };
