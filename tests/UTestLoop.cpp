@@ -355,6 +355,34 @@ TEST_F(UTestLoop, TimerCanNotBeFiredWhenRemovedAndIsExpired)
     EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId1));
 }
 
+TEST_F(UTestLoop, SupportsAddingASocketInATimerHandler)
+{
+    size_t const maxMsgs = 1;
+    std::size_t const timerOcurrences{1};
+    std::chrono::milliseconds timerTimeout{1};
+    TimersHandlers timersHandlers{};
+    ConnectedSocketsWithHandlers sockets{ctx};
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    zmqzext::fn_socket_handler_t socketHandler =
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2);
+    zmqzext::fn_timer_handler_t timerHandler = std::bind(&TimersHandlers::timerHandlerAddSocket,
+                                                         &timersHandlers,
+                                                         _1,
+                                                         _2,
+                                                         zmq::socket_ref{*sockets.socketPull},
+                                                         socketHandler);
+
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences, timerHandler);
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend); // socket will only receive if added by timer handler
+
+    loop.run();
+
+    EXPECT_EQ(maxMsgs, sockets.messages.size());
+}
+
 TEST_F(UTestLoop, SupportsRemovingASocketInATimerHandler)
 {
     TimersHandlers timersHandlers{};
@@ -384,6 +412,29 @@ TEST_F(UTestLoop, SupportsRemovingASocketInATimerHandler)
     loop.run();
 
     EXPECT_EQ(1, sockets.messages.size());
+}
+
+TEST_F(UTestLoop, SupportsAddingATimerInASocketHandler)
+{
+    ConnectedSocketsWithHandlers sockets{ctx};
+    TimersHandlers timersHandlers{};
+    std::string const msgStrToSend{"Test message"};
+
+    zmqzext::fn_timer_handler_t timerHandler = std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2);
+    zmqzext::fn_socket_handler_t socketHandler =
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerAddTimer, &sockets, _1, _2, timerHandler);
+
+    loop.add(*sockets.socketPull, socketHandler);
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
+
+    loop.run();
+
+    t.join();
+
+    EXPECT_EQ(1, timersHandlers.timersHandled.size());
 }
 
 TEST_F(UTestLoop, SupportsRemovingATimerInASocketHandler)
@@ -418,9 +469,5 @@ TEST_F(UTestLoop, SupportsRemovingATimerInASocketHandler)
 
     EXPECT_EQ(0, timersHandlers.timersHandled.size());
 }
-
-// adicionar socket em socket handler
-// adicionar timer em socket handler
-// adicionar timer em socket handler
 
 } // namespace zmqzext

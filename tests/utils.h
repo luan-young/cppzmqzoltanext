@@ -162,6 +162,16 @@ struct ConnectedSocketsWithHandlers
         return true;
     }
 
+    bool socketHandlerAddTimer(zmqzext::loop_t &loop, zmq::socket_ref socket, zmqzext::fn_timer_handler_t handler)
+    {
+        std::size_t const timerOcurrences{1};
+        std::chrono::milliseconds timerTimeout{1};
+        auto msg = recv_now_or_throw(socket);
+        messages.emplace_back(std::move(msg));
+        auto const timer = loop.add_timer(timerTimeout, timerOcurrences, handler);
+        return true;
+    }
+
     bool socketHandlerRemoveTimer(zmqzext::loop_t &loop, zmq::socket_ref socket, zmqzext::timer_id_t const& timerToRevmove)
     {
         auto msg = recv_now_or_throw(socket);
@@ -196,6 +206,13 @@ struct TimersHandlers
     {
         timersHandled.push_back(timerId);
         loop.remove_timer(timerToRevmove);
+        return true;
+    }
+
+    bool timerHandlerAddSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, zmq::socket_ref socket, zmqzext::fn_socket_handler_t handler)
+    {
+        timersHandled.push_back(timerId);
+        loop.add(socket, handler);
         return true;
     }
 
