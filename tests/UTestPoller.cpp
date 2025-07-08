@@ -1,25 +1,21 @@
+#include <cppzmqzoltanext/poller.h>
+#include <gtest/gtest.h>
+
 #include <chrono>
 #include <string>
 #include <thread>
-
-#include <gtest/gtest.h>
 #include <zmq.hpp>
-
-#include <cppzmqzoltanext/poller.h>
 
 #include "utils.h"
 
-namespace zmqzext
-{
-class UTestPoller : public ::testing::Test
-{
+namespace zmqzext {
+class UTestPoller : public ::testing::Test {
 public:
     poller_t poller;
     zmq::context_t ctx;
 };
 
-TEST_F(UTestPoller, ReturnsTheSocketReadyToReceive)
-{
+TEST_F(UTestPoller, ReturnsTheSocketReadyToReceive) {
     ConnectedSocketsPullAndPush sockets{ctx};
     zmq::socket_t unconnectedSocket{ctx, zmq::socket_type::pull};
     std::string const msgStrToSend{"Test message"};
@@ -36,8 +32,7 @@ TEST_F(UTestPoller, ReturnsTheSocketReadyToReceive)
     EXPECT_EQ(msgStrToSend, recvMsg.to_string());
 }
 
-TEST_F(UTestPoller, ReturnsNullSocketWhenNotReadyToReceiveInTimeout)
-{
+TEST_F(UTestPoller, ReturnsNullSocketWhenNotReadyToReceiveInTimeout) {
     ConnectedSocketsPullAndPush sockets{ctx};
     zmq::socket_t unconnectedSocket{ctx, zmq::socket_type::pull};
     zmq::socket_t nullSocket{};
@@ -50,8 +45,7 @@ TEST_F(UTestPoller, ReturnsNullSocketWhenNotReadyToReceiveInTimeout)
     EXPECT_EQ(nullSocket, socket);
 }
 
-TEST_F(UTestPoller, ReturnsNullSocketWhenReadySocketWasRemoved)
-{
+TEST_F(UTestPoller, ReturnsNullSocketWhenReadySocketWasRemoved) {
     ConnectedSocketsPullAndPush sockets{ctx};
     zmq::socket_t unconnectedSocket{ctx, zmq::socket_type::pull};
     std::string const msgStrToSend{"Test message"};
@@ -68,8 +62,7 @@ TEST_F(UTestPoller, ReturnsNullSocketWhenReadySocketWasRemoved)
     EXPECT_EQ(nullptr, socket);
 }
 
-TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive)
-{
+TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive) {
     ConnectedSocketsPullAndPush sockets1{ctx};
     ConnectedSocketsPullAndPush sockets2{ctx};
     zmq::socket_t unconnectedSocket{ctx, zmq::socket_type::pull};
@@ -99,8 +92,7 @@ TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive)
     EXPECT_EQ(msgStrToSend2, recvMsg2.to_string());
 }
 
-TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive)
-{
+TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive) {
     std::chrono::milliseconds timeOut{10};
     std::chrono::milliseconds timeErrorBound{1};
     ConnectedSocketsPullAndPush sockets{ctx};
@@ -116,8 +108,7 @@ TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive)
     EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
-TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenPollerIsEmpty)
-{
+TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenPollerIsEmpty) {
     std::chrono::milliseconds timeOut{10};
     std::chrono::milliseconds timeErrorBound{1};
 
@@ -128,8 +119,7 @@ TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenPollerIsEmpty)
     EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
-TEST_F(UTestPoller, WaitAllCallLingersForGivenTimeoutWhenPollerIsEmpty)
-{
+TEST_F(UTestPoller, WaitAllCallLingersForGivenTimeoutWhenPollerIsEmpty) {
     std::chrono::milliseconds timeOut{10};
     std::chrono::milliseconds timeErrorBound{1};
 
@@ -140,8 +130,7 @@ TEST_F(UTestPoller, WaitAllCallLingersForGivenTimeoutWhenPollerIsEmpty)
     EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
 }
 
-TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown)
-{
+TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown) {
     zmq::socket_t socket{ctx, zmq::socket_type::rep};
 
     poller.add(socket);
@@ -156,15 +145,16 @@ TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown)
     EXPECT_TRUE(poller.terminated());
 }
 
-TEST_F(UTestPoller, WaitCallIsNotInterruptedOnContextShutdownWhenPollerIsEmpty)
-{
+TEST_F(UTestPoller,
+       WaitCallIsNotInterruptedOnContextShutdownWhenPollerIsEmpty) {
     std::chrono::milliseconds timeOut{100};
     std::chrono::milliseconds timeErrorBound{1};
     auto const startTime = std::chrono::steady_clock::now();
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
 
-    // it will wait forever here if not timeout is given, as nothing will interrupt it
+    // it will wait forever here if not timeout is given, as nothing will
+    // interrupt it
     auto socketReady = poller.wait(timeOut);
     auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
@@ -174,4 +164,4 @@ TEST_F(UTestPoller, WaitCallIsNotInterruptedOnContextShutdownWhenPollerIsEmpty)
     EXPECT_FALSE(poller.terminated());
 }
 
-} // namespace zmqzext
+}  // namespace zmqzext
