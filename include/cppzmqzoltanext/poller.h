@@ -19,6 +19,9 @@ public:
         std::chrono::milliseconds timeout = std::chrono::milliseconds{-1});
 
 private:
+    bool has_socket(void* socket_handle) const;
+
+private:
     std::vector<zmq::pollitem_t> _poll_items;
     bool _terminated{false};
 };

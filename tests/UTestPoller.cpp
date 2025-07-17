@@ -92,6 +92,15 @@ TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive) {
     EXPECT_EQ(msgStrToSend2, recvMsg2.to_string());
 }
 
+TEST_F(UTestPoller, WaitAllReturnsEmptyVectorWhenNotReadyToReceiveInTimeout) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    poller.add(sockets.socketPull);
+
+    auto const readySockets = poller.wait_all(std::chrono::milliseconds{10});
+
+    EXPECT_TRUE(readySockets.empty());
+}
+
 TEST_F(UTestPoller, WaitCallLingersForGivenTimeoutWhenNotReadyToReceive) {
     std::chrono::milliseconds timeOut{10};
     std::chrono::milliseconds timeErrorBound{1};
@@ -162,6 +171,37 @@ TEST_F(UTestPoller,
 
     EXPECT_GE(elapsedTime + timeErrorBound, timeOut);
     EXPECT_FALSE(poller.terminated());
+}
+
+TEST_F(UTestPoller, ThrowsWhenAddingNullSocket) {
+    zmq::socket_t nullSocket{};
+    EXPECT_THROW(poller.add(nullSocket), std::invalid_argument);
+}
+
+TEST_F(UTestPoller, ThrowsWhenAddingSameSocketTwice) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    poller.add(sockets.socketPull);
+    EXPECT_THROW(poller.add(sockets.socketPull), std::invalid_argument);
+}
+
+TEST_F(UTestPoller, RemovingNonExistingSocketHasNoEffect) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    EXPECT_NO_THROW(poller.remove(sockets.socketPull));
+}
+
+TEST_F(UTestPoller, MultipleSocketRemovalsMaintainConsistency) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+    ConnectedSocketsPullAndPush sockets2{ctx};
+
+    poller.add(sockets1.socketPull);
+    poller.add(sockets2.socketPull);
+
+    poller.remove(sockets1.socketPull);
+    poller.remove(sockets2.socketPull);
+
+    send_now_or_throw(sockets1.socketPush, "test");
+    auto readySocket = poller.wait(std::chrono::milliseconds{10});
+    EXPECT_EQ(nullptr, readySocket);
 }
 
 }  // namespace zmqzext
