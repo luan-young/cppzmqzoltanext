@@ -481,4 +481,83 @@ TEST_F(UTestLoop, SupportsRemovingATimerInASocketHandler) {
     EXPECT_EQ(0, timersHandlers.timersHandled.size());
 }
 
+TEST_F(UTestLoop, HandlesConcurrentTimerRemovalAndAddition) {
+    TimersHandlers timersHandlers{};
+    std::size_t const timerOcurrences{1};
+
+    auto timerId = loop.add_timer(
+        std::chrono::milliseconds{1}, timerOcurrences,
+        [&](loop_t& l, timer_id_t id) {
+            // Remove self and add new timer
+            l.remove_timer(id);
+            l.add_timer(std::chrono::milliseconds{1}, 1,
+                std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+            return true;
+        });
+
+    auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
+    loop.run();
+    t.join();
+
+    EXPECT_EQ(1, timersHandlers.timersHandled.size());
+}
+
+TEST_F(UTestLoop, HandlesZeroTimeoutTimer) {
+    TimersHandlers timersHandlers{};
+    std::size_t const timerOcurrences{5};
+
+    loop.add_timer(
+        std::chrono::milliseconds{0}, timerOcurrences,
+        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+
+    loop.run();
+
+    EXPECT_EQ(timerOcurrences, timersHandlers.timersHandled.size());
+}
+
+TEST_F(UTestLoop, HandlesTimerWithMaximumTimeout) {
+    TimersHandlers timersHandlers{};
+    auto maxTimeout = std::chrono::milliseconds::max();
+
+    auto timerId = loop.add_timer(
+        maxTimeout, 1,
+        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+
+    // Should not block indefinitely
+    auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
+    loop.run();
+    t.join();
+}
+
+TEST_F(UTestLoop, HandlesMultipleSocketAndTimerRemovals) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    TimersHandlers timersHandlers{};
+
+    // Add multiple sockets and timers
+    auto timerId1 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto timerId2 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+
+    loop.add(*sockets.socketPull,
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+            &sockets, _1, _2));
+    loop.add(*sockets.socketPull2,
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+            &sockets, _1, _2));
+
+    // Remove all at once
+    loop.remove_timer(timerId1);
+    loop.remove_timer(timerId2);
+    loop.remove(*sockets.socketPull);
+    loop.remove(*sockets.socketPull2);
+
+    loop.run(); // Should exit immediately as nothing to handle
+}
+
+//Test multiple timers with identical timeouts firing simultaneously
+//Test invalid socket references
+//Test removing non-existent sockets and timers
+//Timer ID Overflow Testing:
+
 }  // namespace zmqzext
