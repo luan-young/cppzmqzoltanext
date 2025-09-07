@@ -1,6 +1,7 @@
 add_executable(CppZmqZoltanExt_Tests
     UTestPoller.cpp
     UTestLoop.cpp
+    UTestActor.cpp
     utils.h
 )
 
