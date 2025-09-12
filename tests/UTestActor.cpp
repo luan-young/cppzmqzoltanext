@@ -1,4 +1,5 @@
 #include <cppzmqzoltanext/actor.h>
+#include <cppzmqzoltanext/signal.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -25,14 +26,11 @@ class UTestActor : public ::testing::Test {
 public:
     zmq::context_t ctx;
 
-    // TODO: replace signals strings with a signal class
-    std::string success_msg = "success";
-    std::string failure_msg = "failure";
-    std::string stop_msg = "stop";
+    // Using signal machinery for actor communication
 
     bool simpleActorFunction(zmq::socket_t& socket) {
         // Send success signal
-        socket.send(zmq::message_t{success_msg.data(), success_msg.size()},
+        socket.send(signal_t::create_success(),
                     zmq::send_flags::none);
 
         // process messages until receiving stop message
@@ -40,8 +38,11 @@ public:
             try {
                 zmq::message_t msg;
                 auto result = socket.recv(msg, zmq::recv_flags::none);
-                if (result && msg.to_string() == stop_msg) {
-                    return true;
+                if (result) {
+                    auto signal = signal_t::check_signal(msg);
+                    if (signal && signal->is_stop()) {
+                        return true;
+                    }
                 }
             } catch (...) {
                 // Ignore exceptions and continue
@@ -52,7 +53,7 @@ public:
 
     bool busyActorFunction(zmq::socket_t& socket, std::chrono::milliseconds busy_time) {
         // Send success signal
-        socket.send(zmq::message_t{success_msg.data(), success_msg.size()},
+        socket.send(signal_t::create_success(),
                     zmq::send_flags::none);
 
         // Simulate being busy for a while before checking for stop message
@@ -63,8 +64,11 @@ public:
             try {
                 zmq::message_t msg;
                 auto result = socket.recv(msg, zmq::recv_flags::none);
-                if (result && msg.to_string() == stop_msg) {
-                    return true;
+                if (result) {
+                    auto signal = signal_t::check_signal(msg);
+                    if (signal && signal->is_stop()) {
+                        return true;
+                    }
                 }
             } catch (...) {
                 // Ignore exceptions and continue
@@ -85,7 +89,7 @@ public:
 
     bool badActorFunctionThatReturnsWithoutBeingRequested(zmq::socket_t& socket) {
         // Send success signal
-        socket.send(zmq::message_t{success_msg.data(), success_msg.size()}, zmq::send_flags::none);
+        socket.send(signal_t::create_success(), zmq::send_flags::none);
 
         // Simulate work being done
         std::this_thread::sleep_for(10ms);
@@ -183,8 +187,10 @@ TEST_F(UTestActor, DestructorWithFailureDuringOperation) {
         // receive message from actor
         zmq::message_t msg;
         auto result = actor.socket().recv(msg, zmq::recv_flags::none);
-        EXPECT_TRUE(result.has_value());
-        EXPECT_EQ(failure_msg, msg.to_string());
+        ASSERT_TRUE(result.has_value());
+        auto signal = signal_t::check_signal(msg);
+        ASSERT_TRUE(signal.has_value());
+        EXPECT_EQ(signal_t::type_t::failure, signal->type());
         // Destructor should call stop in not blocking mode
     }
 }
@@ -200,8 +206,10 @@ TEST_F(UTestActor, StopWithFailureDuringOperation_MayBlockForever) {
         // receive message from actor
         zmq::message_t msg;
         auto result = actor.socket().recv(msg, zmq::recv_flags::none);
-        EXPECT_TRUE(result.has_value());
-        EXPECT_EQ(failure_msg, msg.to_string());
+        ASSERT_TRUE(result.has_value());
+        auto signal = signal_t::check_signal(msg);
+        ASSERT_TRUE(signal.has_value());
+        EXPECT_EQ(signal_t::type_t::failure, signal->type());
 
         // Try to stop - could block forever if given infinite timeout
         auto const initTime = std::chrono::steady_clock::now();

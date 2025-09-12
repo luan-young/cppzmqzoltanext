@@ -2,12 +2,14 @@ set(CZZE_SOURCES
 	poller.cpp
 	loop.cpp
 	actor.cpp
+	signal.cpp
 )
 
 set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/poller.h
 	../include/cppzmqzoltanext/loop.h
 	../include/cppzmqzoltanext/actor.h
+	../include/cppzmqzoltanext/signal.h
 )
 
 set(CZZE_PRIVATE_HEADERS

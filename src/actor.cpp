@@ -3,7 +3,8 @@
 #include <cerrno>
 #include <random>
 #include <thread>
-#include <iostream>
+
+#include "cppzmqzoltanext/signal.h"
 
 namespace zmqzext {
 
@@ -38,8 +39,8 @@ void actor_t::start(actor_fn_t func) {
     // Wait for success/failure signal
     zmq::message_t msg;
     if (_parent_socket.recv(msg, zmq::recv_flags::none)) { // blocking
-        std::string signal = msg.to_string();
-        if (signal == "success") {
+        auto signal = signal_t::check_signal(msg);
+        if (signal && signal->is_success()) {
             return;  // Success case
         }
         // Failure case - get exception if any
@@ -62,7 +63,7 @@ bool actor_t::stop(std::chrono::milliseconds timeout/* = std::chrono::millisecon
         return false;
     }
 
-    zmq::message_t msg_send{"stop", 4};
+    auto msg_send = signal_t::create_stop();
     auto const result_send = _parent_socket.send(msg_send, zmq::send_flags::dontwait);
     if (!result_send) {
         _stopped = true;
@@ -103,8 +104,8 @@ void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket, st
         auto const success = func(*socket);
 
         // Send success or failure signal based on return value
-        std::string signal = success ? "success" : "failure";
-        socket->send(zmq::message_t{signal.data(), signal.size()}, zmq::send_flags::none);
+        auto signal = success ? signal_t::create_success() : signal_t::create_failure();
+        socket->send(signal, zmq::send_flags::none);
     }
     catch (zmq::error_t const&){}
     catch (...) {
@@ -116,7 +117,8 @@ void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket, st
 
         // Send failure signal
         try {
-            socket->send(zmq::message_t{"failure", 7}, zmq::send_flags::none);
+            auto signal = signal_t::create_failure();
+            socket->send(signal, zmq::send_flags::none);
         } catch (...) {
             // Ignore exceptions during send in exception handler
         }

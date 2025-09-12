@@ -10,13 +10,13 @@ project(CppZmqZoltanExt VERSION 0.0.1 LANGUAGES CXX)
 
 include(FetchContent)
 
-# Require C++14, but let a parent project ask for something higher
+# Require C++17, but let a parent project ask for something higher
 if(DEFINED CMAKE_CXX_STANDARD)
-	if(CMAKE_CXX_STANDARD EQUAL 98 OR CMAKE_CXX_STANDARD LESS 14)
-		message(FATAL_ERROR "${PROJECT_NAME} requires at least C++14")
+	if(CMAKE_CXX_STANDARD EQUAL 98 OR CMAKE_CXX_STANDARD LESS 17)
+		message(FATAL_ERROR "${PROJECT_NAME} requires at least C++17")
 	endif()
 else()
-	set(CMAKE_CXX_STANDARD 14)
+	set(CMAKE_CXX_STANDARD 17)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
