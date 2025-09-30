@@ -7,6 +7,7 @@
 #include <map>
 #include <zmq.hpp>
 
+#include "czze_export.h"
 #include "poller.h"
 
 namespace zmqzext {
@@ -17,7 +18,7 @@ using timer_id_t = std::size_t;
 using fn_socket_handler_t = std::function<bool(loop_t &, zmq::socket_ref)>;
 using fn_timer_handler_t = std::function<bool(loop_t &, timer_id_t)>;
 
-class loop_t {
+class CZZE_EXPORT loop_t {
 private:
     using time_point_t = std::chrono::time_point<std::chrono::steady_clock>;
     using time_milliseconds_t = std::chrono::milliseconds;

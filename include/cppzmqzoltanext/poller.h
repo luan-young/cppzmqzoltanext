@@ -4,9 +4,11 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include "czze_export.h"
+
 namespace zmqzext {
 
-class poller_t {
+class CZZE_EXPORT poller_t {
 public:
     void add(zmq::socket_ref socket);
     void remove(zmq::socket_ref socket);

@@ -9,6 +9,7 @@ endif()
 project(CppZmqZoltanExt VERSION 0.0.1 LANGUAGES CXX)
 
 include(FetchContent)
+include(GenerateExportHeader)
 
 # Require C++17, but let a parent project ask for something higher
 if(DEFINED CMAKE_CXX_STANDARD)
