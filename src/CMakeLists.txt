@@ -3,6 +3,7 @@ set(CZZE_SOURCES
 	loop.cpp
 	actor.cpp
 	signal.cpp
+	interrupt.cpp
 )
 
 set(CZZE_PUBLIC_HEADERS
@@ -10,6 +11,7 @@ set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/loop.h
 	../include/cppzmqzoltanext/actor.h
 	../include/cppzmqzoltanext/signal.h
+	../include/cppzmqzoltanext/interrupt.h
 )
 
 set(CZZE_PRIVATE_HEADERS

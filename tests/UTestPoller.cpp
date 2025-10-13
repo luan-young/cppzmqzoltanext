@@ -1,7 +1,10 @@
+#include <cppzmqzoltanext/interrupt.h>
 #include <cppzmqzoltanext/poller.h>
 #include <gtest/gtest.h>
 
+#include <cassert>
 #include <chrono>
+#include <csignal>
 #include <string>
 #include <thread>
 #include <zmq.hpp>
@@ -13,6 +16,24 @@ class UTestPoller : public ::testing::Test {
 public:
     poller_t poller;
     zmq::context_t ctx;
+};
+
+class UTestPollerWithInterruptHandler : public UTestPoller {
+public:
+    void SetUp() override { install_interrupt_handler(); }
+
+    void TearDown() override {
+        restore_interrupt_handler();
+        reset_interrupt();
+    }
+
+    std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
+        return std::thread([time]() {
+            std::this_thread::sleep_for(time);
+            // raise(SIGINT);
+            assert(kill(getpid(), SIGINT) == 0);
+        });
+    }
 };
 
 TEST_F(UTestPoller, ReturnsTheSocketReadyToReceive) {
@@ -202,6 +223,121 @@ TEST_F(UTestPoller, MultipleSocketRemovalsMaintainConsistency) {
     send_now_or_throw(sockets1.socketPush, "test");
     auto readySocket = poller.wait(std::chrono::milliseconds{10});
     EXPECT_EQ(nullptr, readySocket);
+}
+
+TEST_F(UTestPollerWithInterruptHandler, WaitCallIsTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto socket = poller.wait(std::chrono::milliseconds{1000});
+
+    EXPECT_EQ(nullptr, socket);
+    EXPECT_TRUE(poller.terminated());
+
+    t.join();
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitCallIsTerminatedWhenInterruptedBefore) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    auto socket = poller.wait(std::chrono::milliseconds{1000});
+
+    EXPECT_EQ(nullptr, socket);
+    EXPECT_TRUE(poller.terminated());
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto socket = poller.wait(std::chrono::milliseconds{100});
+
+    EXPECT_EQ(nullptr, socket);
+    EXPECT_FALSE(poller.terminated());
+
+    t.join();
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitCallInNotInterruptibleModeIsNotTerminatedWhenInterruptedBefore) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    auto socket = poller.wait(std::chrono::milliseconds{10});
+
+    EXPECT_EQ(nullptr, socket);
+    EXPECT_FALSE(poller.terminated());
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallIsTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto sockets = poller.wait_all(std::chrono::milliseconds{1000});
+
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_TRUE(poller.terminated());
+
+    t.join();
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallIsTerminatedWhenInterruptedBefore) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    auto sockets = poller.wait_all(std::chrono::milliseconds{1000});
+
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_TRUE(poller.terminated());
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto sockets = poller.wait_all(std::chrono::milliseconds{100});
+
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_FALSE(poller.terminated());
+
+    t.join();
+}
+
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallInNotInterruptibleModeIsNotTerminatedWhenInterruptedBefore) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    auto sockets = poller.wait_all(std::chrono::milliseconds{10});
+
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_FALSE(poller.terminated());
 }
 
 }  // namespace zmqzext

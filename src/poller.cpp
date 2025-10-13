@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "cppzmqzoltanext/interrupt.h"
+
 namespace zmqzext {
 
 void poller_t::add(zmq::socket_ref socket) {
@@ -28,9 +30,20 @@ void poller_t::remove(zmq::socket_ref socket) {
 
 zmq::socket_ref poller_t::wait(
     std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
+    if (is_interrupted() && is_interruptible()) {
+        _terminated = true;
+        return zmq::socket_ref{};
+    }
     _terminated = false;
     try {
         auto const n_items = zmq::poll(_poll_items, timeout);
+        // interrupt may have happened between is_interrupted() and poll() calls
+        // in that case, the poll does not throw with EINTR
+        // then, we check if interrupted before processing results
+        if (is_interrupted() && is_interruptible()) {
+            _terminated = true;
+            return zmq::socket_ref{};
+        }
         if (n_items > 0) {
             for (std::size_t i = 0; i < _poll_items.size(); ++i) {
                 if (_poll_items[i].revents == ZMQ_POLLIN) {
@@ -39,18 +52,38 @@ zmq::socket_ref poller_t::wait(
                 }
             }
         }
-    } catch (zmq::error_t const&) {
-        _terminated = true;
+    } catch (zmq::error_t const& e) {
+        auto const error = e.num();
+        if (error == EINTR) {
+            if (is_interruptible()) {
+                _terminated = true;
+            }
+        } else if (error == ETERM) {
+            _terminated = true;
+        } else {
+            throw;
+        }
     }
     return zmq::socket_ref{};
 }
 
 std::vector<zmq::socket_ref> poller_t::wait_all(
     std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
-    _terminated = false;
     std::vector<zmq::socket_ref> result{};
+    if (is_interrupted() && is_interruptible()) {
+        _terminated = true;
+        return result;
+    }
+    _terminated = false;
     try {
         auto const n_items = zmq::poll(_poll_items, timeout);
+        // interrupt may have happened between is_interrupted() and poll() calls
+        // in that case, the poll does not throw with EINTR
+        // then, we check if interrupted before processing results
+        if (is_interrupted() && is_interruptible()) {
+            _terminated = true;
+            return result;
+        }
         if (n_items > 0) {
             result.reserve(n_items);
             for (std::size_t i = 0; i < _poll_items.size(); ++i) {
@@ -60,8 +93,17 @@ std::vector<zmq::socket_ref> poller_t::wait_all(
                 }
             }
         }
-    } catch (zmq::error_t const&) {
-        _terminated = true;
+    } catch (zmq::error_t const& e) {
+        auto const error = e.num();
+        if (error == EINTR) {
+            if (is_interruptible()) {
+                _terminated = true;
+            }
+        } else if (error == ETERM) {
+            _terminated = true;
+        } else {
+            throw;
+        }
     }
     return result;
 }

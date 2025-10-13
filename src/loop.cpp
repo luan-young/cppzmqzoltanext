@@ -37,7 +37,8 @@ void loop_t::remove_timer(timer_id_t timer_id) {
     timer_it->removed = true;
 }
 
-void loop_t::run() {
+void loop_t::run(bool interruptible /* = true*/) {
+    _poller.set_interruptible(interruptible);
     auto should_continue = true;
     while (should_continue) {
         removeFlagedTimers();

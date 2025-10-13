@@ -37,7 +37,8 @@ public:
                          std::size_t occurences, fn_timer_handler_t fn);
     void remove(zmq::socket_ref socket);
     void remove_timer(timer_id_t timer_id);
-    void run();
+    void run(bool interruptible = true);
+    bool terminated() const { return _poller.terminated(); }
 
 private:
     time_point_t now();

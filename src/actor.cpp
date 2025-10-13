@@ -19,9 +19,7 @@ actor_t::actor_t(zmq::context_t& context)
     _child_socket->connect(address);
 }
 
-actor_t::~actor_t() {
-    stop(_timeout_on_destructor);
-}
+actor_t::~actor_t() { stop(_timeout_on_destructor); }
 
 void actor_t::start(actor_fn_t func) {
     // if (_started) {
@@ -30,15 +28,16 @@ void actor_t::start(actor_fn_t func) {
 
     _started = true;
 
-        // Start the thread and execute the function with shared exception state
-    std::thread thread([this, exception_state = _exception_state, func, socket = std::move(_child_socket)]() mutable {
+    // Start the thread and execute the function with shared exception state
+    std::thread thread([this, exception_state = _exception_state, func,
+                        socket = std::move(_child_socket)]() mutable {
         this->execute(func, std::move(socket), exception_state);
     });
     thread.detach();  // Thread will run independently
 
     // Wait for success/failure signal
     zmq::message_t msg;
-    if (_parent_socket.recv(msg, zmq::recv_flags::none)) { // blocking
+    if (_parent_socket.recv(msg, zmq::recv_flags::none)) {  // blocking
         auto signal = signal_t::check_signal(msg);
         if (signal && signal->is_success()) {
             return;  // Success case
@@ -58,25 +57,29 @@ void actor_t::start(actor_fn_t func) {
     throw std::runtime_error("Failed to receive initialization signal");
 }
 
-bool actor_t::stop(std::chrono::milliseconds timeout/* = std::chrono::milliseconds{-1}*/) {
+bool actor_t::stop(
+    std::chrono::milliseconds timeout /* = std::chrono::milliseconds{-1}*/) {
     if (!_started || _stopped) {
         return false;
     }
 
     auto msg_send = signal_t::create_stop();
-    auto const result_send = _parent_socket.send(msg_send, zmq::send_flags::dontwait);
+    auto const result_send =
+        _parent_socket.send(msg_send, zmq::send_flags::dontwait);
     if (!result_send) {
         _stopped = true;
         return true;
     }
 
     // set socket option rcvtimeout
-    int timeout_ms = (timeout.count() < 0) ? -1 : static_cast<int>(timeout.count());
+    int timeout_ms =
+        (timeout.count() < 0) ? -1 : static_cast<int>(timeout.count());
     _parent_socket.set(zmq::sockopt::rcvtimeo, timeout_ms);
 
     // Wait for response with timeout
     zmq::message_t msg_recv;
-    auto const result_recv = _parent_socket.recv(msg_recv, zmq::recv_flags::none);
+    auto const result_recv =
+        _parent_socket.recv(msg_recv, zmq::recv_flags::none);
     if (!result_recv) {
         _stopped = true;
         return false;
@@ -86,29 +89,24 @@ bool actor_t::stop(std::chrono::milliseconds timeout/* = std::chrono::millisecon
     return true;
 }
 
-zmq::socket_t& actor_t::socket() {
-    return _parent_socket;
-}
+zmq::socket_t& actor_t::socket() { return _parent_socket; }
 
-bool actor_t::is_started() const {
-    return _started;
-}
+bool actor_t::is_started() const { return _started; }
 
-bool actor_t::is_stopped() const {
-    return _stopped;
-}
+bool actor_t::is_stopped() const { return _stopped; }
 
-void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket, std::shared_ptr<SharedExceptionState> exception_state) {
+void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
+                      std::shared_ptr<SharedExceptionState> exception_state) {
     try {
         // Run the user function and monitor its execution
         auto const success = func(*socket);
 
         // Send success or failure signal based on return value
-        auto signal = success ? signal_t::create_success() : signal_t::create_failure();
+        auto signal =
+            success ? signal_t::create_success() : signal_t::create_failure();
         socket->send(signal, zmq::send_flags::none);
-    }
-    catch (zmq::error_t const&){}
-    catch (...) {
+    } catch (zmq::error_t const&) {
+    } catch (...) {
         // Save exception to be rethrown in start() if needed
         {
             std::lock_guard<std::mutex> lock(_exception_state->exception_mutex);

@@ -1,3 +1,4 @@
+#include <cppzmqzoltanext/interrupt.h>
 #include <cppzmqzoltanext/loop.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -24,6 +25,24 @@ class UTestLoop : public ::testing::Test {
 public:
     loop_t loop;
     zmq::context_t ctx;
+};
+
+class UTestLoopWithInterruptHandler : public UTestLoop {
+public:
+    void SetUp() override { install_interrupt_handler(); }
+
+    void TearDown() override {
+        restore_interrupt_handler();
+        reset_interrupt();
+    }
+
+    std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
+        return std::thread([time]() {
+            std::this_thread::sleep_for(time);
+            // raise(SIGINT);
+            assert(kill(getpid(), SIGINT) == 0);
+        });
+    }
 };
 
 TEST_F(UTestLoop, SocketHandlerIsCalled) {
@@ -485,15 +504,16 @@ TEST_F(UTestLoop, HandlesConcurrentTimerRemovalAndAddition) {
     TimersHandlers timersHandlers{};
     std::size_t const timerOcurrences{1};
 
-    auto timerId = loop.add_timer(
-        std::chrono::milliseconds{1}, timerOcurrences,
-        [&](loop_t& l, timer_id_t id) {
-            // Remove self and add new timer
-            l.remove_timer(id);
-            l.add_timer(std::chrono::milliseconds{1}, 1,
-                std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
-            return true;
-        });
+    auto timerId =
+        loop.add_timer(std::chrono::milliseconds{1}, timerOcurrences,
+                       [&](loop_t& l, timer_id_t id) {
+                           // Remove self and add new timer
+                           l.remove_timer(id);
+                           l.add_timer(std::chrono::milliseconds{1}, 1,
+                                       std::bind(&TimersHandlers::timerHandler,
+                                                 &timersHandlers, _1, _2));
+                           return true;
+                       });
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
     loop.run();
@@ -534,17 +554,21 @@ TEST_F(UTestLoop, HandlesMultipleSocketAndTimerRemovals) {
     TimersHandlers timersHandlers{};
 
     // Add multiple sockets and timers
-    auto timerId1 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+    auto timerId1 = loop.add_timer(
+        std::chrono::milliseconds{5}, 1,
         std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
-    auto timerId2 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+    auto timerId2 = loop.add_timer(
+        std::chrono::milliseconds{5}, 1,
         std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.add(*sockets.socketPull,
-        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-            &sockets, _1, _2));
+             std::bind(
+                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+                 &sockets, _1, _2));
     loop.add(*sockets.socketPull2,
-        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-            &sockets, _1, _2));
+             std::bind(
+                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+                 &sockets, _1, _2));
 
     // Remove all at once
     loop.remove_timer(timerId1);
@@ -552,12 +576,56 @@ TEST_F(UTestLoop, HandlesMultipleSocketAndTimerRemovals) {
     loop.remove(*sockets.socketPull);
     loop.remove(*sockets.socketPull2);
 
-    loop.run(); // Should exit immediately as nothing to handle
+    loop.run();  // Should exit immediately as nothing to handle
 }
 
-//Test multiple timers with identical timeouts firing simultaneously
-//Test invalid socket references
-//Test removing non-existent sockets and timers
-//Timer ID Overflow Testing:
+TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+
+    loop.add(*sockets.socketPull,
+             std::bind(
+                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+                 &sockets, _1, _2));
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    loop.run();
+    t.join();
+}
+
+TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterruptedBeforeRun) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+
+    loop.add(*sockets.socketPull,
+             std::bind(
+                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+                 &sockets, _1, _2));
+
+    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    loop.run();
+}
+
+TEST_F(UTestLoopWithInterruptHandler,
+       IgnoresInterruptionWhenSetToNotInterruptibleMode) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    bool timerRun = false;
+    auto timerHandlerToFinishLoop = [&timerRun](zmqzext::loop_t&,
+                                                zmqzext::timer_id_t) -> bool {
+        timerRun = true;
+        return false;
+    };
+
+    loop.add_timer(std::chrono::milliseconds{20}, 1, timerHandlerToFinishLoop);
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+
+    loop.run(false);
+    t.join();
+
+    EXPECT_TRUE(timerRun);
+}
+
+// Test multiple timers with identical timeouts firing simultaneously
+// Test invalid socket references
+// Test removing non-existent sockets and timers
+// Timer ID Overflow Testing:
 
 }  // namespace zmqzext
