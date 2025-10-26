@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 3.27)
 
-# Ensure non-empty default build type for single-config
-get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(NOT isMultiConfig)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
-endif()
+# ---------------------------------------------------------------------------------------
+# Project definition
+# ---------------------------------------------------------------------------------------
 
 project(CppZmqZoltanExt VERSION 0.0.1 LANGUAGES CXX)
 
-include(FetchContent)
-include(GenerateExportHeader)
+# ---------------------------------------------------------------------------------------
+# Compiler settings
+# ---------------------------------------------------------------------------------------
 
 # Require C++17, but let a parent project ask for something higher
 if(DEFINED CMAKE_CXX_STANDARD)
@@ -29,10 +28,40 @@ endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
+# ---------------------------------------------------------------------------------------
+# Set default build type to Release
+# ---------------------------------------------------------------------------------------
+
+# Ensure non-empty default build type for single-config
+get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT isMultiConfig)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
+endif()
+
+# ---------------------------------------------------------------------------------------
+# Options
+# ---------------------------------------------------------------------------------------
+
 option(CZZE_BUILD_TESTS "Build tests" OFF)
 option(CZZE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 
+# ---------------------------------------------------------------------------------------
+# CMake modules
+# ---------------------------------------------------------------------------------------
+
+include(FetchContent)
+include(GenerateExportHeader)
+
+# ---------------------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------------------
+
 find_package(cppzmq REQUIRED)
+find_package(Threads REQUIRED)
+
+# ---------------------------------------------------------------------------------------
+# Sanitizers
+# ---------------------------------------------------------------------------------------
 
 if(CZZE_ENABLE_ASAN)
     message(STATUS "Enabling AddressSanitizer")
@@ -43,7 +72,15 @@ if(CZZE_ENABLE_ASAN)
 
 endif()
 
+# ---------------------------------------------------------------------------------------
+# Targets subdirectories
+# ---------------------------------------------------------------------------------------
+
 add_subdirectory(src)
+
+# ---------------------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------------------
 
 if(CZZE_BUILD_TESTS)
     enable_testing()
@@ -57,3 +94,7 @@ if(CZZE_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
     add_subdirectory(tests)
 endif()
+
+# ---------------------------------------------------------------------------------------
+# Install
+# ---------------------------------------------------------------------------------------
