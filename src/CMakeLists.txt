@@ -12,7 +12,7 @@ set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/actor.h
 	../include/cppzmqzoltanext/signal.h
 	../include/cppzmqzoltanext/interrupt.h
-    ${CMAKE_CURRENT_BINARY_DIR}/czze_export.h
+    ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
 )
 
 set(CZZE_PRIVATE_HEADERS
@@ -37,7 +37,7 @@ set_target_properties(CppZmqZoltanExt_Library PROPERTIES
 # Generate export header
 generate_export_header(CppZmqZoltanExt_Library
     BASE_NAME CZZE
-    EXPORT_FILE_NAME czze_export.h
+    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
 )
 
 target_sources(CppZmqZoltanExt_Library
@@ -45,7 +45,7 @@ target_sources(CppZmqZoltanExt_Library
         FILE_SET HEADERS
         BASE_DIRS
             ../include
-            ${CMAKE_CURRENT_BINARY_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/../include
         FILES
             ${CZZE_PUBLIC_HEADERS}
 )

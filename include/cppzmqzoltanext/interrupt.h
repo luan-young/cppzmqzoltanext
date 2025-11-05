@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "czze_export.h"
+#include "cppzmqzoltanext/czze_export.h"
 
 namespace zmqzext {
 

@@ -51,6 +51,8 @@ option(CZZE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 
 include(FetchContent)
 include(GenerateExportHeader)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # ---------------------------------------------------------------------------------------
 # Dependencies
@@ -91,6 +93,7 @@ if(CZZE_BUILD_TESTS)
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF)
     FetchContent_MakeAvailable(googletest)
     add_subdirectory(tests)
 endif()
@@ -98,3 +101,55 @@ endif()
 # ---------------------------------------------------------------------------------------
 # Install
 # ---------------------------------------------------------------------------------------
+
+set_target_properties(CppZmqZoltanExt_Library PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    DLL_NAME_WITH_SOVERSION TRUE
+)
+
+if(APPLE)
+    set(base @loader_path)
+else()
+    set(base $ORIGIN)
+endif()
+file(RELATIVE_PATH relDir
+	${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
+	${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
+)
+set(CMAKE_INSTALL_RPATH ${base} ${base}/${relDir})
+
+install(TARGETS CppZmqZoltanExt_Library EXPORT ${PROJECT_NAME}_ExportTargets
+    RUNTIME
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FILE_SET HEADERS
+	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT ${PROJECT_NAME}_ExportTargets
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+)
+
+write_basic_package_version_file(
+    ${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)

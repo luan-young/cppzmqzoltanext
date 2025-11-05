@@ -7,7 +7,7 @@
 #include <map>
 #include <zmq.hpp>
 
-#include "czze_export.h"
+#include "cppzmqzoltanext/czze_export.h"
 #include "poller.h"
 
 namespace zmqzext {
