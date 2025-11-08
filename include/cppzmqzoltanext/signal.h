@@ -4,12 +4,14 @@
 #include <optional>
 #include <zmq.hpp>
 
+#include "cppzmqzoltanext/czze_export.h"
+
 namespace zmqzext {
 
 /**
  * @brief Class representing actor signals for inter-thread communication
  */
-class signal_t {
+class CZZE_EXPORT signal_t {
 public:
     /**
      * @brief Enumeration of possible signal types
