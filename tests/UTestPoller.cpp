@@ -30,8 +30,7 @@ public:
     std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
         return std::thread([time]() {
             std::this_thread::sleep_for(time);
-            // raise(SIGINT);
-            assert(kill(getpid(), SIGINT) == 0);
+            kill(getpid(), SIGINT);
         });
     }
 };
