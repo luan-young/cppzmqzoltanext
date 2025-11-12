@@ -1,3 +1,8 @@
+
+# ---------------------------------------------------------------------------------------
+# Source and Headers Files
+# ---------------------------------------------------------------------------------------
+
 set(CZZE_SOURCES
 	poller.cpp
 	loop.cpp
@@ -18,29 +23,25 @@ set(CZZE_PUBLIC_HEADERS
 set(CZZE_PRIVATE_HEADERS
 )
 
-if(BUILD_SHARED_LIBS)
-    add_library(CppZmqZoltanExt_Library SHARED ${CZZE_SOURCES} ${CZZE_PRIVATE_HEADERS})
-    target_link_libraries(CppZmqZoltanExt_Library PUBLIC cppzmq)
-else()
-    add_library(CppZmqZoltanExt_Library STATIC ${CZZE_SOURCES} ${CZZE_PRIVATE_HEADERS})
-    target_link_libraries(CppZmqZoltanExt_Library PUBLIC cppzmq-static)
-endif()
-target_link_libraries(CppZmqZoltanExt_Library PRIVATE Threads::Threads)
+# ---------------------------------------------------------------------------------------
+# Shared Library
+# ---------------------------------------------------------------------------------------
 
-add_library(CppZmqZoltanExt::CppZmqZoltanExt ALIAS CppZmqZoltanExt_Library)
-set_target_properties(CppZmqZoltanExt_Library PROPERTIES
-    OUTPUT_NAME CppZmqZoltanExt
-    EXPORT_NAME CppZmqZoltanExt
+add_library(libcppzmqzoltanext SHARED ${CZZE_SOURCES} ${CZZE_PRIVATE_HEADERS})
+target_link_libraries(libcppzmqzoltanext PUBLIC cppzmq)
+target_link_libraries(libcppzmqzoltanext PRIVATE Threads::Threads)
+
+add_library(cppzmqzoltanext::cppzmqzoltanext ALIAS libcppzmqzoltanext)
+set_target_properties(libcppzmqzoltanext PROPERTIES
+    OUTPUT_NAME cppzmqzoltanext
+    EXPORT_NAME cppzmqzoltanext
     DEBUG_POSTFIX d
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    DLL_NAME_WITH_SOVERSION TRUE
 )
 
-# Generate export header
-generate_export_header(CppZmqZoltanExt_Library
-    BASE_NAME CZZE
-    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
-)
-
-target_sources(CppZmqZoltanExt_Library
+target_sources(libcppzmqzoltanext
     PUBLIC
         FILE_SET HEADERS
         BASE_DIRS
@@ -49,3 +50,42 @@ target_sources(CppZmqZoltanExt_Library
         FILES
             ${CZZE_PUBLIC_HEADERS}
 )
+
+# ---------------------------------------------------------------------------------------
+# Static Library
+# ---------------------------------------------------------------------------------------
+
+add_library(libcppzmqzoltanextstatic STATIC ${CZZE_SOURCES} ${CZZE_PRIVATE_HEADERS})
+target_link_libraries(libcppzmqzoltanextstatic PUBLIC cppzmq-static)
+target_link_libraries(libcppzmqzoltanextstatic PRIVATE Threads::Threads)
+
+add_library(cppzmqzoltanext::cppzmqzoltanext-static ALIAS libcppzmqzoltanextstatic)
+set_target_properties(libcppzmqzoltanextstatic PROPERTIES
+    OUTPUT_NAME cppzmqzoltanext-static
+    EXPORT_NAME cppzmqzoltanext-static
+    DEBUG_POSTFIX d
+    VERSION ${PROJECT_VERSION}
+)
+
+target_sources(libcppzmqzoltanextstatic
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            ../include
+            ${CMAKE_CURRENT_BINARY_DIR}/../include
+        FILES
+            ${CZZE_PUBLIC_HEADERS}
+)
+
+# ---------------------------------------------------------------------------------------
+# Export Header
+# ---------------------------------------------------------------------------------------
+
+# Shared target used for generating export header for both the shared and static targets
+generate_export_header(libcppzmqzoltanext
+    BASE_NAME CZZE
+    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
+)
+# Static target needs special preprocessor define
+# to prevent symbol import/export keywords being added
+target_compile_definitions(libcppzmqzoltanextstatic PRIVATE CZZE_STATIC_DEFINE)

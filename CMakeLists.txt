@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.27)
 # Project definition
 # ---------------------------------------------------------------------------------------
 
-project(CppZmqZoltanExt VERSION 0.0.1 LANGUAGES CXX)
+project(cppzmqzoltanext VERSION 0.0.1 LANGUAGES CXX)
 
 # ---------------------------------------------------------------------------------------
 # Compiler settings
@@ -102,12 +102,6 @@ endif()
 # Install
 # ---------------------------------------------------------------------------------------
 
-set_target_properties(CppZmqZoltanExt_Library PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-    DLL_NAME_WITH_SOVERSION TRUE
-)
-
 if(APPLE)
     set(base @loader_path)
 else()
@@ -119,7 +113,8 @@ file(RELATIVE_PATH relDir
 )
 set(CMAKE_INSTALL_RPATH ${base} ${base}/${relDir})
 
-install(TARGETS CppZmqZoltanExt_Library EXPORT ${PROJECT_NAME}_ExportTargets
+install(TARGETS libcppzmqzoltanext libcppzmqzoltanextstatic
+    EXPORT ${PROJECT_NAME}_ExportTargets
     RUNTIME
         DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY
