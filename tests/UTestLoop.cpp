@@ -33,14 +33,7 @@ public:
 
     void TearDown() override {
         restore_interrupt_handler();
-        reset_interrupt();
-    }
-
-    std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
-        return std::thread([time]() {
-            std::this_thread::sleep_for(time);
-            kill(getpid(), SIGINT);
-        });
+        reset_interrupted();
     }
 };
 
@@ -256,9 +249,9 @@ TEST_F(UTestLoop, TimerHandlerFromOneTimerIsCalledManyTimes) {
 
 TEST_F(UTestLoop, ManyTimerHandlersAreCalledManyTimes) {
     std::size_t const timer1Ocurrences{2};
-    std::chrono::milliseconds timer1Timeout{10};
+    std::chrono::milliseconds timer1Timeout{50};
     std::size_t const timer2Ocurrences{4};
-    std::chrono::milliseconds timer2Timeout{4};
+    std::chrono::milliseconds timer2Timeout{20};
     TimersHandlers timersHandlers{};
 
     auto const timerId1 = loop.add_timer(
@@ -419,9 +412,9 @@ TEST_F(UTestLoop, SupportsAddingASocketInATimerHandler) {
 TEST_F(UTestLoop, SupportsRemovingASocketInATimerHandler) {
     TimersHandlers timersHandlers{};
     std::size_t const timerSenderOcurrences{2};
-    std::chrono::milliseconds timerSenderTimeout{4};
+    std::chrono::milliseconds timerSenderTimeout{40};
     std::size_t const timerRemoverOcurrences{1};
-    std::chrono::milliseconds timerRemoverTimeout{6};
+    std::chrono::milliseconds timerRemoverTimeout{60};
     ConnectedSocketsWithHandlers sockets{ctx};
     sockets.maxMsgs = 2;
 
@@ -578,6 +571,7 @@ TEST_F(UTestLoop, HandlesMultipleSocketAndTimerRemovals) {
     loop.run();  // Should exit immediately as nothing to handle
 }
 
+#if !defined(_WIN32)
 TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
     ConnectedSocketsWithHandlers sockets{ctx};
 
@@ -590,6 +584,20 @@ TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
     loop.run();
     t.join();
 }
+#else
+TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+
+    loop.add(*sockets.socketPull,
+             std::bind(
+                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
+                 &sockets, _1, _2));
+
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    loop.run(true, std::chrono::milliseconds{5});
+    t.join();
+}
+#endif
 
 TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterruptedBeforeRun) {
     ConnectedSocketsWithHandlers sockets{ctx};
@@ -599,7 +607,9 @@ TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterruptedBeforeRun) {
                  &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
                  &sockets, _1, _2));
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds{1});  // ensure signal is handled
     loop.run();
 }
 

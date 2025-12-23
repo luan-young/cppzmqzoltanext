@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <csignal>
 #include <functional>
 #include <memory>
 #include <string>
@@ -19,6 +20,21 @@ class eagain_recv_exception : public std::runtime_error {
 public:
     eagain_recv_exception() : std::runtime_error{"Recv returned EAGAIN"} {}
 };
+
+void raise_interrupt_signal() {
+#if defined(WIN32)
+    std::raise(SIGINT);
+#else
+    kill(getpid(), SIGINT);
+#endif
+}
+
+std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
+    return std::thread([time]() {
+        std::this_thread::sleep_for(time);
+        raise_interrupt_signal();
+    });
+}
 
 void send_now_or_throw(zmq::socket_ref socket, std::string const& msg) {
     auto const result =
@@ -67,7 +83,7 @@ struct ConnectedSocketsPullAndPush {
         socketPull.set(zmq::sockopt::linger, 0);
         socketPush.set(zmq::sockopt::linger, 0);
 
-        socketPull.bind("tcp://localhost:*");
+        socketPull.bind("tcp://127.0.0.1:*");
         auto const addr = socketPull.get(zmq::sockopt::last_endpoint);
         socketPush.connect(addr);
     }
@@ -95,11 +111,11 @@ struct ConnectedSocketsWithHandlers {
         socketPull2->set(zmq::sockopt::linger, 0);
         socketPush2->set(zmq::sockopt::linger, 0);
 
-        socketPull->bind("tcp://localhost:*");
+        socketPull->bind("tcp://127.0.0.1:*");
         auto const addr = socketPull->get(zmq::sockopt::last_endpoint);
         socketPush->connect(addr);
 
-        socketPull2->bind("tcp://localhost:*");
+        socketPull2->bind("tcp://127.0.0.1:*");
         auto const addr2 = socketPull2->get(zmq::sockopt::last_endpoint);
         socketPush2->connect(addr2);
     }

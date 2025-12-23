@@ -111,7 +111,7 @@ public:
 
     void TearDown() override {
         restore_interrupt_handler();
-        reset_interrupt();
+        reset_interrupted();
     }
 
     bool socketHandler(zmqzext::loop_t&, zmq::socket_ref socket) {
@@ -295,7 +295,7 @@ TEST_F(UTestActorWithInterruptHandler,
     // wait some time to ensure the actor has already called the loop.run()
     std::this_thread::sleep_for(10ms);
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
 
     // if the actor has had terminated, it should have sent a failure signal
     // wait for actor termination message for a certain time, but should not
@@ -323,7 +323,7 @@ TEST_F(UTestActorWithInterruptHandler,
                           this, std::placeholders::_1, busyTimeBeforeRun,
                           interruptible));
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
 
     // this actor sends failure signal when loop is interrupted
     // so, should receive the failure message from actor
@@ -357,7 +357,7 @@ TEST_F(UTestActorWithInterruptHandler,
     ASSERT_TRUE(resultSnd.has_value());
 
     std::this_thread::sleep_for(1ms);  // ensures the message is being processed
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
 
     // this actor sends failure signal when loop is interrupted
     // so, should receive the failure message from actor
@@ -380,7 +380,7 @@ TEST_F(
                           this, std::placeholders::_1, busyTimeBeforeRun,
                           interruptible));
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
 
     // if the actor has had terminated, it should have sent a failure signal
     // wait for actor termination message for a certain time, but should not

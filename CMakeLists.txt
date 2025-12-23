@@ -89,7 +89,7 @@ if(CZZE_BUILD_TESTS)
     FetchContent_Declare(
         googletest
         GIT_REPOSITORY https://github.com/google/googletest
-        GIT_TAG b514bdc898e2951020cbdca1304b75f5950d1f59
+        GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

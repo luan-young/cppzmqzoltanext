@@ -46,6 +46,6 @@ CZZE_EXPORT bool is_interrupted();
  * handle an interrupt and then continue execution while still monitoring
  * for future interrupts.
  */
-CZZE_EXPORT void reset_interrupt();
+CZZE_EXPORT void reset_interrupted();
 
 }  // namespace zmqzext
