@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <chrono>
-#include <csignal>
 #include <string>
 #include <thread>
 #include <zmq.hpp>
@@ -24,14 +23,7 @@ public:
 
     void TearDown() override {
         restore_interrupt_handler();
-        reset_interrupt();
-    }
-
-    std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
-        return std::thread([time]() {
-            std::this_thread::sleep_for(time);
-            kill(getpid(), SIGINT);
-        });
+        reset_interrupted();
     }
 };
 
@@ -46,7 +38,7 @@ TEST_F(UTestPoller, ReturnsTheSocketReadyToReceive) {
     send_now_or_throw(sockets.socketPush, msgStrToSend);
 
     auto socket = poller.wait();
-    ASSERT_EQ(sockets.socketPull, socket);
+    ASSERT_TRUE(sockets.socketPull == socket);
 
     auto const recvMsg = recv_now_or_throw(socket);
     EXPECT_EQ(msgStrToSend, recvMsg.to_string());
@@ -62,7 +54,7 @@ TEST_F(UTestPoller, ReturnsNullSocketWhenNotReadyToReceiveInTimeout) {
 
     auto socket = poller.wait(std::chrono::milliseconds{10});
 
-    EXPECT_EQ(nullSocket, socket);
+    EXPECT_TRUE(nullSocket == socket);
 }
 
 TEST_F(UTestPoller, ReturnsNullSocketWhenReadySocketWasRemoved) {
@@ -102,8 +94,8 @@ TEST_F(UTestPoller, ReturnsAllSocketsReadyToReceive) {
     auto sockets = poller.wait_all();
 
     ASSERT_EQ(2, sockets.size());
-    ASSERT_EQ(sockets1.socketPull, sockets[0]);
-    ASSERT_EQ(sockets2.socketPull, sockets[1]);
+    ASSERT_TRUE(sockets1.socketPull == sockets[0]);
+    ASSERT_TRUE(sockets2.socketPull == sockets[1]);
 
     auto const recvMsg1 = recv_now_or_throw(sockets[0]);
     EXPECT_EQ(msgStrToSend1, recvMsg1.to_string());
@@ -165,7 +157,6 @@ TEST_F(UTestPoller, WaitCallIsInterruptedOnContextShutdown) {
     poller.add(socket);
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
-
     auto socketReady = poller.wait();
 
     t.join();
@@ -224,19 +215,49 @@ TEST_F(UTestPoller, MultipleSocketRemovalsMaintainConsistency) {
     EXPECT_EQ(nullptr, readySocket);
 }
 
+#if !defined(WIN32)
 TEST_F(UTestPollerWithInterruptHandler, WaitCallIsTerminatedWhenInterrupted) {
     ConnectedSocketsPullAndPush sockets1{ctx};
 
     poller.add(sockets1.socketPull);
 
+    auto const startTime = std::chrono::steady_clock::now();
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
     auto socket = poller.wait(std::chrono::milliseconds{1000});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
     EXPECT_EQ(nullptr, socket);
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
     EXPECT_TRUE(poller.terminated());
 
     t.join();
 }
+#else
+// On Windows, signals do not interrupt the zmq polling call.
+// So, on Windows the polling strategy may be loop with timeout to check for
+// interrupt flag.
+TEST_F(UTestPollerWithInterruptHandler, WaitCallIsTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    auto const startTime = std::chrono::steady_clock::now();
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+    while (elapsedTime < std::chrono::milliseconds{1000} &&
+           !poller.terminated()) {
+        auto socket = poller.wait(std::chrono::milliseconds{5});
+        elapsedTime = std::chrono::steady_clock::now() - startTime;
+    };
+
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
+    EXPECT_TRUE(poller.terminated());
+
+    t.join();
+}
+#endif
 
 TEST_F(UTestPollerWithInterruptHandler,
        WaitCallIsTerminatedWhenInterruptedBefore) {
@@ -244,13 +265,20 @@ TEST_F(UTestPollerWithInterruptHandler,
 
     poller.add(sockets1.socketPull);
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
-    auto socket = poller.wait(std::chrono::milliseconds{1000});
+    raise_interrupt_signal();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds{1});  // ensure signal is handled
+    auto const startTime = std::chrono::steady_clock::now();
+    auto socket = poller.wait(std::chrono::milliseconds{10});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
     EXPECT_EQ(nullptr, socket);
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{5})
+        << "Poller shouldn't wait";
     EXPECT_TRUE(poller.terminated());
 }
 
+#if !defined(WIN32)
 TEST_F(UTestPollerWithInterruptHandler,
        WaitCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
     ConnectedSocketsPullAndPush sockets1{ctx};
@@ -258,14 +286,45 @@ TEST_F(UTestPollerWithInterruptHandler,
     poller.set_interruptible(false);
     poller.add(sockets1.socketPull);
 
+    auto const startTime = std::chrono::steady_clock::now();
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
-    auto socket = poller.wait(std::chrono::milliseconds{100});
+    auto socket = poller.wait(std::chrono::milliseconds{1000});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
     EXPECT_EQ(nullptr, socket);
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
     EXPECT_FALSE(poller.terminated());
 
     t.join();
 }
+#else
+// On Windows, signals do not interrupt the zmq polling call.
+// So, on Windows the polling strategy may be loop with timeout to check for
+// interrupt flag.
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    auto const startTime = std::chrono::steady_clock::now();
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+    while (elapsedTime < std::chrono::milliseconds{1000} &&
+           zmqzext::is_interrupted() == false) {
+        auto socket = poller.wait(std::chrono::milliseconds{5});
+        elapsedTime = std::chrono::steady_clock::now() - startTime;
+    };
+
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
+    EXPECT_FALSE(poller.terminated());
+
+    t.join();
+}
+#endif
 
 TEST_F(UTestPollerWithInterruptHandler,
        WaitCallInNotInterruptibleModeIsNotTerminatedWhenInterruptedBefore) {
@@ -274,27 +333,66 @@ TEST_F(UTestPollerWithInterruptHandler,
     poller.set_interruptible(false);
     poller.add(sockets1.socketPull);
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds{1});  // ensure signal is handled
+    auto const startTime = std::chrono::steady_clock::now();
     auto socket = poller.wait(std::chrono::milliseconds{10});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
     EXPECT_EQ(nullptr, socket);
+    EXPECT_GE(elapsedTime, std::chrono::milliseconds{9})
+        << "Poller was interrupted";
     EXPECT_FALSE(poller.terminated());
 }
 
+#if !defined(WIN32)
 TEST_F(UTestPollerWithInterruptHandler,
        WaitAllCallIsTerminatedWhenInterrupted) {
     ConnectedSocketsPullAndPush sockets1{ctx};
 
     poller.add(sockets1.socketPull);
 
+    auto const startTime = std::chrono::steady_clock::now();
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
     auto sockets = poller.wait_all(std::chrono::milliseconds{1000});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
     EXPECT_TRUE(sockets.empty());
     EXPECT_TRUE(poller.terminated());
 
     t.join();
 }
+#else
+// On Windows, signals do not interrupt the zmq polling call.
+// So, on Windows the polling strategy may be loop with timeout to check for
+// interrupt flag.
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallIsTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.add(sockets1.socketPull);
+
+    auto const startTime = std::chrono::steady_clock::now();
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+    auto sockets = std::vector<zmq::socket_ref>{};
+    while (elapsedTime < std::chrono::milliseconds{1000} &&
+           !poller.terminated()) {
+        sockets = poller.wait_all(std::chrono::milliseconds{5});
+        elapsedTime = std::chrono::steady_clock::now() - startTime;
+    };
+
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_TRUE(poller.terminated());
+
+    t.join();
+}
+#endif
 
 TEST_F(UTestPollerWithInterruptHandler,
        WaitAllCallIsTerminatedWhenInterruptedBefore) {
@@ -302,13 +400,20 @@ TEST_F(UTestPollerWithInterruptHandler,
 
     poller.add(sockets1.socketPull);
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
-    auto sockets = poller.wait_all(std::chrono::milliseconds{1000});
+    raise_interrupt_signal();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds{1});  // ensure signal is handled
+    auto const startTime = std::chrono::steady_clock::now();
+    auto sockets = poller.wait_all(std::chrono::milliseconds{10});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{5})
+        << "Poller shouldn't wait";
     EXPECT_TRUE(sockets.empty());
     EXPECT_TRUE(poller.terminated());
 }
 
+#if !defined(WIN32)
 TEST_F(UTestPollerWithInterruptHandler,
        WaitAllCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
     ConnectedSocketsPullAndPush sockets1{ctx};
@@ -316,14 +421,47 @@ TEST_F(UTestPollerWithInterruptHandler,
     poller.set_interruptible(false);
     poller.add(sockets1.socketPull);
 
+    auto const startTime = std::chrono::steady_clock::now();
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
-    auto sockets = poller.wait_all(std::chrono::milliseconds{100});
+    auto sockets = poller.wait_all(std::chrono::milliseconds{1000});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
     EXPECT_TRUE(sockets.empty());
     EXPECT_FALSE(poller.terminated());
 
     t.join();
 }
+#else
+// On Windows, signals do not interrupt the zmq polling call.
+// So, on Windows the polling strategy may be loop with timeout to check for
+// interrupt flag.
+TEST_F(UTestPollerWithInterruptHandler,
+       WaitAllCallInNotInterruptibleModeIsNotTerminatedWhenInterrupted) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+
+    poller.set_interruptible(false);
+    poller.add(sockets1.socketPull);
+
+    auto const startTime = std::chrono::steady_clock::now();
+    auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
+    auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+    auto sockets = std::vector<zmq::socket_ref>{};
+    while (elapsedTime < std::chrono::milliseconds{1000} &&
+           zmqzext::is_interrupted() == false) {
+        sockets = poller.wait_all(std::chrono::milliseconds{5});
+        elapsedTime = std::chrono::steady_clock::now() - startTime;
+    };
+
+    EXPECT_LT(elapsedTime, std::chrono::milliseconds{100})
+        << "Not interrupted in time";
+    EXPECT_TRUE(sockets.empty());
+    EXPECT_FALSE(poller.terminated());
+
+    t.join();
+}
+#endif
 
 TEST_F(UTestPollerWithInterruptHandler,
        WaitAllCallInNotInterruptibleModeIsNotTerminatedWhenInterruptedBefore) {
@@ -332,9 +470,15 @@ TEST_F(UTestPollerWithInterruptHandler,
     poller.set_interruptible(false);
     poller.add(sockets1.socketPull);
 
-    ASSERT_TRUE(kill(getpid(), SIGINT) == 0);
+    raise_interrupt_signal();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds{1});  // ensure signal is handled
+    auto const startTime = std::chrono::steady_clock::now();
     auto sockets = poller.wait_all(std::chrono::milliseconds{10});
+    auto const elapsedTime = std::chrono::steady_clock::now() - startTime;
 
+    EXPECT_GE(elapsedTime, std::chrono::milliseconds{9})
+        << "Poller was interrupted";
     EXPECT_TRUE(sockets.empty());
     EXPECT_FALSE(poller.terminated());
 }

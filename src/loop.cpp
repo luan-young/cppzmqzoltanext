@@ -37,8 +37,12 @@ void loop_t::remove_timer(timer_id_t timer_id) {
     timer_it->removed = true;
 }
 
-void loop_t::run(bool interruptible /* = true*/) {
+void loop_t::run(
+    bool interruptible /* = true*/,
+    std::chrono::milliseconds
+        interruptCheckInterval /* = std::chrono::milliseconds{-1}*/) {
     _poller.set_interruptible(interruptible);
+    _interruptCheckInterval = interruptCheckInterval;
     auto should_continue = true;
     while (should_continue) {
         removeFlagedTimers();
@@ -56,9 +60,11 @@ void loop_t::run(bool interruptible /* = true*/) {
              timer_it != _timer_handlers.end();) {
             if (timer_it->removed == false &&
                 current_time >= timer_it->next_occurence) {
-                should_continue = timer_it->handler(*this, timer_it->id);
+                should_continue = timer_it->handler(
+                    *this, timer_it->id);  // TODO: check should_continue
                 if (timer_it->occurences > 0 && --timer_it->occurences == 0) {
                     timer_it = _timer_handlers.erase(timer_it);
+                    continue;
                 } else {
                     timer_it->next_occurence += timer_it->timeout;
                 }
@@ -88,9 +94,16 @@ loop_t::time_milliseconds_t loop_t::find_next_timeout(
                              return a.next_occurence < b.next_occurence;
                          });
     if (next_expiring_timer_it == _timer_handlers.cend()) {
+        if (_interruptCheckInterval > time_milliseconds_t{0}) {
+            return _interruptCheckInterval;
+        }
         return time_milliseconds_t{-1};
     }
-    auto const time_left = next_expiring_timer_it->next_occurence - actual_time;
+    auto time_left = next_expiring_timer_it->next_occurence - actual_time;
+    if (_interruptCheckInterval > time_milliseconds_t{0} &&
+        time_left > _interruptCheckInterval) {
+        return _interruptCheckInterval;
+    }
     return std::max(time_milliseconds_t{0}, ceil_to_milliseconds(time_left));
 }
 
