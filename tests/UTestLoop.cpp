@@ -635,6 +635,5 @@ TEST_F(UTestLoopWithInterruptHandler,
 // Test multiple timers with identical timeouts firing simultaneously
 // Test invalid socket references
 // Test removing non-existent sockets and timers
-// Timer ID Overflow Testing:
 
 }  // namespace zmqzext

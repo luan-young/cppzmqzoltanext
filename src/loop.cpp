@@ -1,5 +1,7 @@
 #include "cppzmqzoltanext/loop.h"
 
+#include <algorithm>
+
 namespace zmqzext {
 
 void loop_t::add(zmq::socket_ref socket, fn_socket_handler_t fn) {
@@ -9,9 +11,7 @@ void loop_t::add(zmq::socket_ref socket, fn_socket_handler_t fn) {
 
 timer_id_t loop_t::add_timer(std::chrono::milliseconds timeout,
                              std::size_t occurences, fn_timer_handler_t fn) {
-    auto const timer_id =
-        ++_last_timer_id;  // TODO: check timer id is unique and keep iterating
-                           // until finds a unique one
+    auto const timer_id = generate_unique_timer_id();
     auto const next_occurence = now() + timeout;
     _timer_handlers.push_back(
         timer_t{timer_id, timeout, occurences, next_occurence, fn, false});
@@ -121,6 +121,26 @@ loop_t::time_milliseconds_t loop_t::ceil_to_milliseconds(
         return t + time_milliseconds_t{1};
     }
     return t;
+}
+
+timer_id_t loop_t::generate_unique_timer_id() {
+    timer_id_t timer_id = ++_last_timer_id;
+    if (_last_timer_id == 0) {
+        _timer_id_has_overflowed = true;
+        timer_id = ++_last_timer_id;
+    }
+    if (_timer_id_has_overflowed) {
+        while (std::any_of(
+            _timer_handlers.begin(), _timer_handlers.end(),
+            [timer_id](auto const& t) { return t.id == timer_id; })) {
+            timer_id = ++_last_timer_id;
+            if (_last_timer_id == 0) {
+                throw std::runtime_error(
+                    "Unable to generate unique timer ID: all IDs are in use.");
+            }
+        }
+    }
+    return timer_id;
 }
 
 }  // namespace zmqzext

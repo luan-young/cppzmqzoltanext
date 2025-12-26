@@ -46,6 +46,7 @@ private:
     time_point_t now();
     time_milliseconds_t find_next_timeout(time_point_t const& actual_time);
     void removeFlagedTimers();
+    timer_id_t generate_unique_timer_id();
     template <class Rep, class Period>
     time_milliseconds_t ceil_to_milliseconds(
         std::chrono::duration<Rep, Period> const& duration);
@@ -55,6 +56,7 @@ private:
     std::map<zmq::socket_ref, fn_socket_handler_t> _socket_handlers;
     std::list<timer_t> _timer_handlers;
     timer_id_t _last_timer_id{0};
+    bool _timer_id_has_overflowed{false};
     time_milliseconds_t _interruptCheckInterval{-1};
 };
 
