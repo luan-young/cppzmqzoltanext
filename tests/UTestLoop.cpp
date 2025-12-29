@@ -44,9 +44,7 @@ TEST_F(UTestLoop, SocketHandlerIsCalled) {
     std::string const msgStrToSend{"Test message"};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     send_now_or_throw(*sockets.socketPush, msgStrToSend);
 
@@ -63,9 +61,7 @@ TEST_F(UTestLoop, KeepsRunningLoopUntilHandlerReturnsFalse) {
     std::string const msgStrToSend{"Test message"};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     // send maxMsgs + 1 messages
     for (size_t i = 0; i < maxMsgs + 1; ++i) {
@@ -83,9 +79,7 @@ TEST_F(UTestLoop, StopsRunningWhenSocketContextIsShutdown) {
     ConnectedSocketsWithHandlers sockets{ctx};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
 
@@ -101,13 +95,9 @@ TEST_F(UTestLoop, HandlerFromEachSocketIsCalled) {
     std::string const msgStrToSend{"Test message"};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
     loop.add(*sockets.socketPull2,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     send_now_or_throw(*sockets.socketPush, msgStrToSend);
     send_now_or_throw(*sockets.socketPush2, msgStrToSend);
@@ -123,10 +113,8 @@ TEST_F(UTestLoop, SupportsAddingOtherSocketWhileExecutingSocketHandler) {
     sockets.maxMsgs = maxMsgs;
     std::string const msgStrToSend{"Test message"};
 
-    loop.add(
-        *sockets.socketPull,
-        std::bind(&ConnectedSocketsWithHandlers::socketHandlerAddOtherSocket,
-                  &sockets, _1, _2, zmq::socket_ref{*sockets.socketPull2}));
+    loop.add(*sockets.socketPull, std::bind(&ConnectedSocketsWithHandlers::socketHandlerAddOtherSocket, &sockets, _1,
+                                            _2, zmq::socket_ref{*sockets.socketPull2}));
 
     send_now_or_throw(*sockets.socketPush2,
                       msgStrToSend);  // socket 2 will only receive if added by
@@ -145,9 +133,7 @@ TEST_F(UTestLoop, SupportsRemovingTheSocketWhileItsHandlerIsExecuting) {
     std::string const msgStrToSend{"Test message"};
 
     loop.add(*sockets.socketPull,
-             std::bind(&ConnectedSocketsWithHandlers::
-                           socketHandlerRemoveSocketBeingHandled,
-                       &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveSocketBeingHandled, &sockets, _1, _2));
 
     for (size_t i = 0; i < totalMsgsToSend; ++i) {
         send_now_or_throw(*sockets.socketPush, msgStrToSend);
@@ -160,21 +146,16 @@ TEST_F(UTestLoop, SupportsRemovingTheSocketWhileItsHandlerIsExecuting) {
     EXPECT_EQ(nullptr, sockets.socketPull.get());
 }
 
-TEST_F(UTestLoop,
-       SupportsRemovingTheSocketWhileItsHandlerIsExecuting_MoreSocketOnLoop) {
+TEST_F(UTestLoop, SupportsRemovingTheSocketWhileItsHandlerIsExecuting_MoreSocketOnLoop) {
     size_t const totalMsgsToSend = 2;
     size_t const totalMsgsShouldReceive = 1;
     ConnectedSocketsWithHandlers sockets{ctx};
     std::string const msgStrToSend{"Test message"};
 
     loop.add(*sockets.socketPull,
-             std::bind(&ConnectedSocketsWithHandlers::
-                           socketHandlerRemoveSocketBeingHandled,
-                       &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveSocketBeingHandled, &sockets, _1, _2));
     loop.add(*sockets.socketPull2,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     for (size_t i = 0; i < totalMsgsToSend; ++i) {
         send_now_or_throw(*sockets.socketPush, msgStrToSend);
@@ -191,8 +172,7 @@ TEST_F(UTestLoop,
     EXPECT_EQ(nullptr, sockets.socketPull.get());
 }
 
-TEST_F(UTestLoop,
-       SupportsRemovingASocketReadyToReceiveWhileHandlingOtherSocket) {
+TEST_F(UTestLoop, SupportsRemovingASocketReadyToReceiveWhileHandlingOtherSocket) {
     size_t const totalMsgsToSend = 2;
     size_t const totalMsgsShouldReceive = 1;
     ConnectedSocketsWithHandlers sockets{ctx};
@@ -201,14 +181,10 @@ TEST_F(UTestLoop,
 
     // sockets must be added in this order so the first handler is processed
     // first
-    loop.add(
-        *sockets.socketPull,
-        std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveOtherSocket,
-                  &sockets, _1, _2));
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveOtherSocket, &sockets, _1, _2));
     loop.add(*sockets.socketPull2,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     send_now_or_throw(*sockets.socketPush, msgStrToSend);
     send_now_or_throw(*sockets.socketPush2, msgStrToSend);
@@ -236,15 +212,13 @@ TEST_F(UTestLoop, TimerHandlerFromOneTimerIsCalledManyTimes) {
     std::chrono::milliseconds timerTimeout{2};
     TimersHandlers timersHandlers{};
 
-    auto const timerId = loop.add_timer(
-        timerTimeout, timerOcurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences,
+                                        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.run();
 
     ASSERT_EQ(timerOcurrences, timersHandlers.timersHandled.size());
-    EXPECT_THAT(timersHandlers.timersHandled,
-                ElementsAre(timerId, timerId, timerId));
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId, timerId, timerId));
 }
 
 TEST_F(UTestLoop, ManyTimerHandlersAreCalledManyTimes) {
@@ -254,20 +228,15 @@ TEST_F(UTestLoop, ManyTimerHandlersAreCalledManyTimes) {
     std::chrono::milliseconds timer2Timeout{20};
     TimersHandlers timersHandlers{};
 
-    auto const timerId1 = loop.add_timer(
-        timer1Timeout, timer1Ocurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
-    auto const timerId2 = loop.add_timer(
-        timer2Timeout, timer2Ocurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto const timerId1 = loop.add_timer(timer1Timeout, timer1Ocurrences,
+                                         std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto const timerId2 = loop.add_timer(timer2Timeout, timer2Ocurrences,
+                                         std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.run();
 
-    ASSERT_EQ(timer1Ocurrences + timer2Ocurrences,
-              timersHandlers.timersHandled.size());
-    EXPECT_THAT(timersHandlers.timersHandled,
-                ElementsAre(timerId2, timerId2, timerId1, timerId2, timerId2,
-                            timerId1));
+    ASSERT_EQ(timer1Ocurrences + timer2Ocurrences, timersHandlers.timersHandled.size());
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId2, timerId2, timerId1, timerId2, timerId2, timerId1));
 }
 
 TEST_F(UTestLoop, KeepsRunningLoopUntilTimerHandlerReturnsFalse) {
@@ -275,10 +244,8 @@ TEST_F(UTestLoop, KeepsRunningLoopUntilTimerHandlerReturnsFalse) {
     std::chrono::milliseconds timerTimeout{1};
     TimersHandlers timersHandlers{};
 
-    auto const timerId =
-        loop.add_timer(timerTimeout, timerOcurrences,
-                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
-                                 &timersHandlers, _1, _2));
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences,
+                                        std::bind(&TimersHandlers::timerHandlerReturnsFalse, &timersHandlers, _1, _2));
 
     loop.run();
 
@@ -293,14 +260,10 @@ TEST_F(UTestLoop, KeepsRunningLoopUntilTimerHandlerReturnsFalse2) {
     std::chrono::milliseconds timer2Timeout{1};
     TimersHandlers timersHandlers{};
 
-    auto const timerId1 =
-        loop.add_timer(timer1Timeout, timer1Ocurrences,
-                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
-                                 &timersHandlers, _1, _2));
-    auto const timerId2 =
-        loop.add_timer(timer2Timeout, timer2Ocurrences,
-                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
-                                 &timersHandlers, _1, _2));
+    auto const timerId1 = loop.add_timer(timer1Timeout, timer1Ocurrences,
+                                         std::bind(&TimersHandlers::timerHandlerReturnsFalse, &timersHandlers, _1, _2));
+    auto const timerId2 = loop.add_timer(timer2Timeout, timer2Ocurrences,
+                                         std::bind(&TimersHandlers::timerHandlerReturnsFalse, &timersHandlers, _1, _2));
 
     loop.run();
 
@@ -312,20 +275,16 @@ TEST_F(UTestLoop, TimerHandlerWithZeroOccurencesIsCalledForever) {
     std::size_t const timerOcurrences{0};
     std::chrono::milliseconds timerTimeout{1};
     std::chrono::milliseconds delayToInterrupt{20};
-    std::size_t const minExpectedOccurences =
-        (delayToInterrupt / timerTimeout) / 2;
+    std::size_t const minExpectedOccurences = (delayToInterrupt / timerTimeout) / 2;
     TimersHandlers timersHandlers{};
 
     // must add at least one socket so the ctx shutdown interrupts the loop
     ConnectedSocketsWithHandlers socketsToInterrupt{ctx};
     loop.add(*socketsToInterrupt.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &socketsToInterrupt, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &socketsToInterrupt, _1, _2));
 
-    auto const timerId = loop.add_timer(
-        timerTimeout, timerOcurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences,
+                                        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     auto t = shutdown_ctx_after_time(ctx, delayToInterrupt);
 
@@ -341,16 +300,13 @@ TEST_F(UTestLoop, SupportsAddingATimerInATimerHandler) {
     std::chrono::milliseconds timerTimeout{1};
     TimersHandlers timersHandlers{};
 
-    auto const timerId =
-        loop.add_timer(timerTimeout, timerOcurrences,
-                       std::bind(&TimersHandlers::timerHandlerAddTimer,
-                                 &timersHandlers, _1, _2));
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences,
+                                        std::bind(&TimersHandlers::timerHandlerAddTimer, &timersHandlers, _1, _2));
 
     loop.run();
 
     ASSERT_EQ(1, timersHandlers.timersAdded.size());
-    EXPECT_THAT(timersHandlers.timersHandled,
-                ElementsAre(timerId, timersHandlers.timersAdded[0]));
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId, timersHandlers.timersAdded[0]));
 }
 
 TEST_F(UTestLoop, SupportsRemovingTheTimerWhileItsHandlerIsExecuting) {
@@ -363,16 +319,13 @@ TEST_F(UTestLoop, SupportsRemovingTheTimerWhileItsHandlerIsExecuting) {
 
     timerIdToRemove = loop.add_timer(
         timer1Timeout, timer1Ocurrences,
-        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1,
-                  _2, std::ref(timerIdToRemove)));
-    auto const timerId2 = loop.add_timer(
-        timer2Timeout, timer2Ocurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1, _2, std::ref(timerIdToRemove)));
+    auto const timerId2 = loop.add_timer(timer2Timeout, timer2Ocurrences,
+                                         std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.run();
 
-    EXPECT_THAT(timersHandlers.timersHandled,
-                ElementsAre(timerIdToRemove, timerId2, timerId2));
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerIdToRemove, timerId2, timerId2));
 }
 
 TEST_F(UTestLoop, SupportsRemovingATimerWhileOtherTimerHandlerIsExecuting) {
@@ -383,18 +336,15 @@ TEST_F(UTestLoop, SupportsRemovingATimerWhileOtherTimerHandlerIsExecuting) {
     TimersHandlers timersHandlers{};
     zmqzext::timer_id_t timerIdNotRemove{0};
 
-    auto const timerIdToRemove = loop.add_timer(
-        timer1Timeout, timer1Ocurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto const timerIdToRemove = loop.add_timer(timer1Timeout, timer1Ocurrences,
+                                                std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
     auto const timerId2 = loop.add_timer(
         timer2Timeout, timer2Ocurrences,
-        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1,
-                  _2, std::ref(timerIdToRemove)));
+        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1, _2, std::ref(timerIdToRemove)));
 
     loop.run();
 
-    EXPECT_THAT(timersHandlers.timersHandled,
-                ElementsAre(timerIdToRemove, timerId2, timerId2));
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerIdToRemove, timerId2, timerId2));
 }
 
 TEST_F(UTestLoop, TimerCanNotBeFiredWhenRemovedAndIsExpired) {
@@ -407,12 +357,10 @@ TEST_F(UTestLoop, TimerCanNotBeFiredWhenRemovedAndIsExpired) {
 
     auto const timerId1 = loop.add_timer(
         timer1Timeout, timer1Ocurrences,
-        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1,
-                  _2, std::ref(timerIdToRemove)));
+        std::bind(&TimersHandlers::timerHandlerRemoveTimer, &timersHandlers, _1, _2, std::ref(timerIdToRemove)));
 
-    timerIdToRemove = loop.add_timer(
-        timer2Timeout, timer2Ocurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    timerIdToRemove = loop.add_timer(timer2Timeout, timer2Ocurrences,
+                                     std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.run();
 
@@ -428,19 +376,15 @@ TEST_F(UTestLoop, SupportsAddingASocketInATimerHandler) {
     sockets.maxMsgs = maxMsgs;
     std::string const msgStrToSend{"Test message"};
 
-    zmqzext::fn_socket_handler_t socketHandler = std::bind(
-        &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-        &sockets, _1, _2);
-    zmqzext::fn_timer_handler_t timerHandler =
-        std::bind(&TimersHandlers::timerHandlerAddSocket, &timersHandlers, _1,
-                  _2, zmq::socket_ref{*sockets.socketPull}, socketHandler);
+    zmqzext::fn_socket_handler_t socketHandler =
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2);
+    zmqzext::fn_timer_handler_t timerHandler = std::bind(&TimersHandlers::timerHandlerAddSocket, &timersHandlers, _1,
+                                                         _2, zmq::socket_ref{*sockets.socketPull}, socketHandler);
 
-    auto const timerId =
-        loop.add_timer(timerTimeout, timerOcurrences, timerHandler);
+    auto const timerId = loop.add_timer(timerTimeout, timerOcurrences, timerHandler);
 
-    send_now_or_throw(
-        *sockets.socketPush,
-        msgStrToSend);  // socket will only receive if added by timer handler
+    send_now_or_throw(*sockets.socketPush,
+                      msgStrToSend);  // socket will only receive if added by timer handler
 
     loop.run();
 
@@ -457,19 +401,15 @@ TEST_F(UTestLoop, SupportsRemovingASocketInATimerHandler) {
     sockets.maxMsgs = 2;
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
-    auto const timerSender = loop.add_timer(
-        timerSenderTimeout, timerSenderOcurrences,
-        std::bind(&TimersHandlers::timerHandlerSendFromSocket, &timersHandlers,
-                  _1, _2, zmq::socket_ref{*sockets.socketPush}));
+    auto const timerSender = loop.add_timer(timerSenderTimeout, timerSenderOcurrences,
+                                            std::bind(&TimersHandlers::timerHandlerSendFromSocket, &timersHandlers, _1,
+                                                      _2, zmq::socket_ref{*sockets.socketPush}));
 
     auto const timerRemoverPull = loop.add_timer(
         timerRemoverTimeout, timerRemoverOcurrences,
-        std::bind(&TimersHandlers::timerHandlerRemoveSocket, &timersHandlers,
-                  _1, _2, std::ref(sockets.socketPull)));
+        std::bind(&TimersHandlers::timerHandlerRemoveSocket, &timersHandlers, _1, _2, std::ref(sockets.socketPull)));
 
     loop.run();
 
@@ -481,11 +421,9 @@ TEST_F(UTestLoop, SupportsAddingATimerInASocketHandler) {
     TimersHandlers timersHandlers{};
     std::string const msgStrToSend{"Test message"};
 
-    zmqzext::fn_timer_handler_t timerHandler =
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2);
+    zmqzext::fn_timer_handler_t timerHandler = std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2);
     zmqzext::fn_socket_handler_t socketHandler =
-        std::bind(&ConnectedSocketsWithHandlers::socketHandlerAddTimer,
-                  &sockets, _1, _2, timerHandler);
+        std::bind(&ConnectedSocketsWithHandlers::socketHandlerAddTimer, &sockets, _1, _2, timerHandler);
 
     loop.add(*sockets.socketPull, socketHandler);
 
@@ -507,9 +445,8 @@ TEST_F(UTestLoop, SupportsRemovingATimerInASocketHandler) {
     std::chrono::milliseconds timerTimeout{2};
     zmqzext::timer_id_t timerIdToRemove{0};
 
-    loop.add(*sockets.socketPull,
-             std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveTimer,
-                       &sockets, _1, _2, std::ref(timerIdToRemove)));
+    loop.add(*sockets.socketPull, std::bind(&ConnectedSocketsWithHandlers::socketHandlerRemoveTimer, &sockets, _1, _2,
+                                            std::ref(timerIdToRemove)));
 
     send_now_or_throw(*sockets.socketPush, std::string{"Test message"});
 
@@ -517,9 +454,8 @@ TEST_F(UTestLoop, SupportsRemovingATimerInASocketHandler) {
     // fired before the timer expires
     waitSocketHaveMsg(*sockets.socketPull, std::chrono::milliseconds{2});
 
-    timerIdToRemove = loop.add_timer(
-        timerTimeout, timerOcurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    timerIdToRemove = loop.add_timer(timerTimeout, timerOcurrences,
+                                     std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
 
@@ -534,16 +470,12 @@ TEST_F(UTestLoop, HandlesConcurrentTimerRemovalAndAddition) {
     TimersHandlers timersHandlers{};
     std::size_t const timerOcurrences{1};
 
-    auto timerId =
-        loop.add_timer(std::chrono::milliseconds{1}, timerOcurrences,
-                       [&](loop_t& l, timer_id_t id) {
-                           // Remove self and add new timer
-                           l.remove_timer(id);
-                           l.add_timer(std::chrono::milliseconds{1}, 1,
-                                       std::bind(&TimersHandlers::timerHandler,
-                                                 &timersHandlers, _1, _2));
-                           return true;
-                       });
+    auto timerId = loop.add_timer(std::chrono::milliseconds{1}, timerOcurrences, [&](loop_t& l, timer_id_t id) {
+        // Remove self and add new timer
+        l.remove_timer(id);
+        l.add_timer(std::chrono::milliseconds{1}, 1, std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+        return true;
+    });
 
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
     loop.run();
@@ -556,9 +488,8 @@ TEST_F(UTestLoop, HandlesZeroTimeoutTimer) {
     TimersHandlers timersHandlers{};
     std::size_t const timerOcurrences{5};
 
-    loop.add_timer(
-        std::chrono::milliseconds{0}, timerOcurrences,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    loop.add_timer(std::chrono::milliseconds{0}, timerOcurrences,
+                   std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.run();
 
@@ -569,9 +500,7 @@ TEST_F(UTestLoop, HandlesTimerWithMaximumTimeout) {
     TimersHandlers timersHandlers{};
     auto maxTimeout = std::chrono::milliseconds::max();
 
-    auto timerId = loop.add_timer(
-        maxTimeout, 1,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto timerId = loop.add_timer(maxTimeout, 1, std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     // Should not block indefinitely
     auto t = shutdown_ctx_after_time(ctx, std::chrono::milliseconds{10});
@@ -584,21 +513,15 @@ TEST_F(UTestLoop, HandlesMultipleSocketAndTimerRemovals) {
     TimersHandlers timersHandlers{};
 
     // Add multiple sockets and timers
-    auto timerId1 = loop.add_timer(
-        std::chrono::milliseconds{5}, 1,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
-    auto timerId2 = loop.add_timer(
-        std::chrono::milliseconds{5}, 1,
-        std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto timerId1 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+                                   std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
+    auto timerId2 = loop.add_timer(std::chrono::milliseconds{5}, 1,
+                                   std::bind(&TimersHandlers::timerHandler, &timersHandlers, _1, _2));
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
     loop.add(*sockets.socketPull2,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     // Remove all at once
     loop.remove_timer(timerId1);
@@ -614,9 +537,7 @@ TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
     ConnectedSocketsWithHandlers sockets{ctx};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
     loop.run();
@@ -627,9 +548,7 @@ TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterrupted) {
     ConnectedSocketsWithHandlers sockets{ctx};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     auto t = raise_interrupt_after_time(std::chrono::milliseconds{10});
     loop.run(true, std::chrono::milliseconds{5});
@@ -641,22 +560,17 @@ TEST_F(UTestLoopWithInterruptHandler, StopsRunningWhenInterruptedBeforeRun) {
     ConnectedSocketsWithHandlers sockets{ctx};
 
     loop.add(*sockets.socketPull,
-             std::bind(
-                 &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                 &sockets, _1, _2));
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
 
     raise_interrupt_signal();
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds{1});  // ensure signal is handled
+    std::this_thread::sleep_for(std::chrono::milliseconds{1});  // ensure signal is handled
     loop.run();
 }
 
-TEST_F(UTestLoopWithInterruptHandler,
-       IgnoresInterruptionWhenSetToNotInterruptibleMode) {
+TEST_F(UTestLoopWithInterruptHandler, IgnoresInterruptionWhenSetToNotInterruptibleMode) {
     ConnectedSocketsWithHandlers sockets{ctx};
     bool timerRun = false;
-    auto timerHandlerToFinishLoop = [&timerRun](zmqzext::loop_t&,
-                                                zmqzext::timer_id_t) -> bool {
+    auto timerHandlerToFinishLoop = [&timerRun](zmqzext::loop_t&, zmqzext::timer_id_t) -> bool {
         timerRun = true;
         return false;
     };

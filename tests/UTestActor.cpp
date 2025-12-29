@@ -49,8 +49,7 @@ public:
         return false;
     }
 
-    bool busyActorFunction(zmq::socket_t& socket,
-                           std::chrono::milliseconds busy_time) {
+    bool busyActorFunction(zmq::socket_t& socket, std::chrono::milliseconds busy_time) {
         // Send success signal
         socket.send(signal_t::create_success(), zmq::send_flags::none);
 
@@ -86,8 +85,7 @@ public:
         throw user_exception();
     }
 
-    bool badActorFunctionThatReturnsWithoutBeingRequested(
-        zmq::socket_t& socket) {
+    bool badActorFunctionThatReturnsWithoutBeingRequested(zmq::socket_t& socket) {
         // Send success signal
         socket.send(signal_t::create_success(), zmq::send_flags::none);
 
@@ -133,16 +131,13 @@ public:
         return true;  // Continue handling messages
     }
 
-    bool loopActorFunction(zmq::socket_t& socket,
-                           std::chrono::milliseconds busy_time,
-                           bool interruptible) {
+    bool loopActorFunction(zmq::socket_t& socket, std::chrono::milliseconds busy_time, bool interruptible) {
         // Send success signal
         socket.send(signal_t::create_success(), zmq::send_flags::none);
 
         auto loop = zmqzext::loop_t{};
-        loop.add(socket,
-                 std::bind(&UTestActorWithInterruptHandler::socketHandler, this,
-                           std::placeholders::_1, std::placeholders::_2));
+        loop.add(socket, std::bind(&UTestActorWithInterruptHandler::socketHandler, this, std::placeholders::_1,
+                                   std::placeholders::_2));
 
         std::this_thread::sleep_for(busy_time);
 
@@ -159,8 +154,7 @@ TEST_F(UTestActor, NormalExecution) {
     EXPECT_FALSE(actor.is_started());
     EXPECT_FALSE(actor.is_stopped());
 
-    actor.start(std::bind(&UTestActor::simpleActorFunction, this,
-                          std::placeholders::_1));
+    actor.start(std::bind(&UTestActor::simpleActorFunction, this, std::placeholders::_1));
 
     EXPECT_TRUE(actor.is_started());
     EXPECT_FALSE(actor.is_stopped());
@@ -174,10 +168,9 @@ TEST_F(UTestActor, NormalExecution) {
 TEST_F(UTestActor, FailureDuringStart) {
     actor_t actor{ctx};
 
-    EXPECT_THROW(actor.start(std::bind(
-                     &UTestActor::failingDuringInitializationActorFunction,
-                     this, std::placeholders::_1)),
-                 std::runtime_error);
+    EXPECT_THROW(
+        actor.start(std::bind(&UTestActor::failingDuringInitializationActorFunction, this, std::placeholders::_1)),
+        std::runtime_error);
 
     EXPECT_TRUE(actor.is_started());
     EXPECT_TRUE(actor.is_stopped());
@@ -186,10 +179,9 @@ TEST_F(UTestActor, FailureDuringStart) {
 TEST_F(UTestActor, ExceptionDuringStart) {
     actor_t actor{ctx};
 
-    EXPECT_THROW(actor.start(std::bind(
-                     &UTestActor::throwingDuringInitializationActorFunction,
-                     this, std::placeholders::_1)),
-                 user_exception);
+    EXPECT_THROW(
+        actor.start(std::bind(&UTestActor::throwingDuringInitializationActorFunction, this, std::placeholders::_1)),
+        user_exception);
 
     EXPECT_TRUE(actor.is_started());
     EXPECT_TRUE(actor.is_stopped());
@@ -198,8 +190,7 @@ TEST_F(UTestActor, ExceptionDuringStart) {
 TEST_F(UTestActor, StopWithInsufficientTimeout) {
     actor_t actor{ctx};
 
-    actor.start(std::bind(&UTestActor::busyActorFunction, this,
-                          std::placeholders::_1, 100ms));
+    actor.start(std::bind(&UTestActor::busyActorFunction, this, std::placeholders::_1, 100ms));
 
     // Try to stop with a very short timeout
     EXPECT_FALSE(actor.stop(10ms));
@@ -210,8 +201,7 @@ TEST_F(UTestActor, StopWithInsufficientTimeout) {
 TEST_F(UTestActor, StopWithSufficientTimeout) {
     actor_t actor{ctx};
 
-    actor.start(std::bind(&UTestActor::busyActorFunction, this,
-                          std::placeholders::_1, 10ms));
+    actor.start(std::bind(&UTestActor::busyActorFunction, this, std::placeholders::_1, 10ms));
 
     // Try to stop with a sufficient timeout
     EXPECT_TRUE(actor.stop(100ms));
@@ -226,16 +216,14 @@ TEST_F(UTestActor, DestructorWithRunningActor) {
     EXPECT_FALSE(actor.is_started());
     EXPECT_FALSE(actor.is_stopped());
 
-    actor.start(std::bind(&UTestActor::simpleActorFunction, this,
-                          std::placeholders::_1));
+    actor.start(std::bind(&UTestActor::simpleActorFunction, this, std::placeholders::_1));
 }
 
 TEST_F(UTestActor, DestructorWithFailureDuringOperation) {
     {
         actor_t actor{ctx};
-        actor.start(std::bind(
-            &UTestActor::badActorFunctionThatReturnsWithoutBeingRequested, this,
-            std::placeholders::_1));
+        actor.start(
+            std::bind(&UTestActor::badActorFunctionThatReturnsWithoutBeingRequested, this, std::placeholders::_1));
 
         // receive message from actor
         zmq::message_t msg;
@@ -252,9 +240,8 @@ TEST_F(UTestActor, StopWithFailureDuringOperation_MayBlockForever) {
     bool blockedOnce = false;
     for (int i = 0; i < 10; ++i) {
         actor_t actor{ctx};
-        actor.start(std::bind(
-            &UTestActor::badActorFunctionThatReturnsWithoutBeingRequested, this,
-            std::placeholders::_1));
+        actor.start(
+            std::bind(&UTestActor::badActorFunctionThatReturnsWithoutBeingRequested, this, std::placeholders::_1));
 
         // receive message from actor
         zmq::message_t msg;
@@ -276,8 +263,7 @@ TEST_F(UTestActor, StopWithFailureDuringOperation_MayBlockForever) {
     EXPECT_TRUE(blockedOnce);
 }
 
-TEST_F(UTestActorWithInterruptHandler,
-       InterruptHandlerInParentThreadDoesNotInterruptActor_LoopBlocked) {
+TEST_F(UTestActorWithInterruptHandler, InterruptHandlerInParentThreadDoesNotInterruptActor_LoopBlocked) {
     /*
     The zmq poller used by loop_t is not interrupted by signals when running in
     the actor thread, so if the loop is blocked waiting for messages, it will
@@ -288,9 +274,8 @@ TEST_F(UTestActorWithInterruptHandler,
     auto const busyTimeBeforeRun = 0ms;
     auto const interruptible = true;
 
-    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction,
-                          this, std::placeholders::_1, busyTimeBeforeRun,
-                          interruptible));
+    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction, this, std::placeholders::_1,
+                          busyTimeBeforeRun, interruptible));
 
     // wait some time to ensure the actor has already called the loop.run()
     std::this_thread::sleep_for(10ms);
@@ -307,8 +292,7 @@ TEST_F(UTestActorWithInterruptHandler,
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(UTestActorWithInterruptHandler,
-       InterruptHandlerInParentThreadInterruptActor_BeforeLoopRun) {
+TEST_F(UTestActorWithInterruptHandler, InterruptHandlerInParentThreadInterruptActor_BeforeLoopRun) {
     /*
     Although the loop is not interrupted when blocked, if the interrupt handler
     is called before the loop starts running, the loop will detect the interrupt
@@ -319,9 +303,8 @@ TEST_F(UTestActorWithInterruptHandler,
     auto const busyTimeBeforeRun = 10ms;
     auto const interruptible = true;
 
-    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction,
-                          this, std::placeholders::_1, busyTimeBeforeRun,
-                          interruptible));
+    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction, this, std::placeholders::_1,
+                          busyTimeBeforeRun, interruptible));
 
     raise_interrupt_signal();
 
@@ -335,8 +318,7 @@ TEST_F(UTestActorWithInterruptHandler,
     EXPECT_EQ(signal_t::type_t::failure, signal->type());
 }
 
-TEST_F(UTestActorWithInterruptHandler,
-       InterruptHandlerInParentThreadInterruptsActor_LoopHandling) {
+TEST_F(UTestActorWithInterruptHandler, InterruptHandlerInParentThreadInterruptsActor_LoopHandling) {
     /*
     Although the loop is not interrupted when blocked, if a signal is received
     while the loop is handling messages, the loop will have the chance to check
@@ -347,9 +329,8 @@ TEST_F(UTestActorWithInterruptHandler,
     auto const busyTimeBeforeRun = 0ms;
     auto const interruptible = true;
 
-    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction,
-                          this, std::placeholders::_1, busyTimeBeforeRun,
-                          interruptible));
+    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction, this, std::placeholders::_1,
+                          busyTimeBeforeRun, interruptible));
 
     // send message that makes the loop wait inside the handler
     zmq::message_t msgSnd{std::string{"Test message"}};
@@ -369,16 +350,13 @@ TEST_F(UTestActorWithInterruptHandler,
     EXPECT_EQ(signal_t::type_t::failure, signal->type());
 }
 
-TEST_F(
-    UTestActorWithInterruptHandler,
-    ActorsMaySetLoopToNotInterruptibleModeSoParentCanControlActorsTermination) {
+TEST_F(UTestActorWithInterruptHandler, ActorsMaySetLoopToNotInterruptibleModeSoParentCanControlActorsTermination) {
     actor_t actor{ctx};
     auto const busyTimeBeforeRun = 10ms;
     auto const interruptible = false;
 
-    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction,
-                          this, std::placeholders::_1, busyTimeBeforeRun,
-                          interruptible));
+    actor.start(std::bind(&UTestActorWithInterruptHandler::loopActorFunction, this, std::placeholders::_1,
+                          busyTimeBeforeRun, interruptible));
 
     raise_interrupt_signal();
 

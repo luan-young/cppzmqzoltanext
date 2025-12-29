@@ -21,9 +21,7 @@ static void (*stored_sigint_handler)(int) = nullptr;
 static void (*stored_sigterm_handler)(int) = nullptr;
 #endif
 
-void signal_handler(int /*signal*/) {
-    zmqzext_interrupted.store(true, std::memory_order_relaxed);
-}
+void signal_handler(int /*signal*/) { zmqzext_interrupted.store(true, std::memory_order_relaxed); }
 
 #if !defined(WIN32)
 void store_signal_handlers() {
@@ -82,12 +80,8 @@ void restore_interrupt_handler() {
 }
 #endif
 
-bool is_interrupted() {
-    return zmqzext_interrupted.load(std::memory_order_relaxed);
-}
+bool is_interrupted() { return zmqzext_interrupted.load(std::memory_order_relaxed); }
 
-void reset_interrupted() {
-    zmqzext_interrupted.store(false, std::memory_order_relaxed);
-}
+void reset_interrupted() { zmqzext_interrupted.store(false, std::memory_order_relaxed); }
 
 }  // namespace zmqzext

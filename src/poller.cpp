@@ -22,14 +22,11 @@ void poller_t::add(zmq::socket_ref socket) {
 void poller_t::remove(zmq::socket_ref socket) {
     auto handle = socket.handle();
     _poll_items.erase(std::remove_if(_poll_items.begin(), _poll_items.end(),
-                                     [handle](zmq::pollitem_t const& item) {
-                                         return item.socket == handle;
-                                     }),
+                                     [handle](zmq::pollitem_t const& item) { return item.socket == handle; }),
                       _poll_items.end());
 }
 
-zmq::socket_ref poller_t::wait(
-    std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
+zmq::socket_ref poller_t::wait(std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
     if (is_interrupted() && is_interruptible()) {
         _terminated = true;
         return zmq::socket_ref{};
@@ -47,8 +44,7 @@ zmq::socket_ref poller_t::wait(
         if (n_items > 0) {
             for (std::size_t i = 0; i < _poll_items.size(); ++i) {
                 if (_poll_items[i].revents == ZMQ_POLLIN) {
-                    return zmq::socket_ref{zmq::from_handle,
-                                           _poll_items[i].socket};
+                    return zmq::socket_ref{zmq::from_handle, _poll_items[i].socket};
                 }
             }
         }
@@ -67,8 +63,7 @@ zmq::socket_ref poller_t::wait(
     return zmq::socket_ref{};
 }
 
-std::vector<zmq::socket_ref> poller_t::wait_all(
-    std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
+std::vector<zmq::socket_ref> poller_t::wait_all(std::chrono::milliseconds timeout /*= std::chrono::milliseconds{-1}*/) {
     std::vector<zmq::socket_ref> result{};
     if (is_interrupted() && is_interruptible()) {
         _terminated = true;
@@ -88,8 +83,7 @@ std::vector<zmq::socket_ref> poller_t::wait_all(
             result.reserve(n_items);
             for (std::size_t i = 0; i < _poll_items.size(); ++i) {
                 if (_poll_items[i].revents == ZMQ_POLLIN) {
-                    result.emplace_back(zmq::socket_ref{zmq::from_handle,
-                                                        _poll_items[i].socket});
+                    result.emplace_back(zmq::socket_ref{zmq::from_handle, _poll_items[i].socket});
                 }
             }
         }
@@ -110,9 +104,7 @@ std::vector<zmq::socket_ref> poller_t::wait_all(
 
 bool poller_t::has_socket(void* socket_handle) const {
     return std::any_of(_poll_items.begin(), _poll_items.end(),
-                       [socket_handle](const zmq::pollitem_t& item) {
-                           return item.socket == socket_handle;
-                       });
+                       [socket_handle](const zmq::pollitem_t& item) { return item.socket == socket_handle; });
 }
 
 }  // namespace zmqzext

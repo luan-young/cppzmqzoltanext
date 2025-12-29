@@ -37,8 +37,7 @@ std::thread raise_interrupt_after_time(std::chrono::milliseconds time) {
 }
 
 void send_now_or_throw(zmq::socket_ref socket, std::string const& msg) {
-    auto const result =
-        socket.send(zmq::buffer(msg), zmq::send_flags::dontwait);
+    auto const result = socket.send(zmq::buffer(msg), zmq::send_flags::dontwait);
     if (!result) {
         throw eagain_send_exception{};
     }
@@ -53,20 +52,16 @@ zmq::message_t recv_now_or_throw(zmq::socket_ref socket) {
     return msg;
 }
 
-void waitSocketHaveMsg(zmq::socket_ref socket,
-                       std::chrono::milliseconds timeout) {
+void waitSocketHaveMsg(zmq::socket_ref socket, std::chrono::milliseconds timeout) {
     std::vector<zmq::pollitem_t> _poll_items;
-    _poll_items.emplace_back(
-        zmq::pollitem_t{socket.handle(), 0, ZMQ_POLLIN, 0});
+    _poll_items.emplace_back(zmq::pollitem_t{socket.handle(), 0, ZMQ_POLLIN, 0});
     auto const nItems = zmq::poll(_poll_items, timeout);
     if (nItems <= 0) {
-        throw std::runtime_error{
-            "Socket has not msg ready to receive in timeout."};
+        throw std::runtime_error{"Socket has not msg ready to receive in timeout."};
     }
 }
 
-std::thread shutdown_ctx_after_time(zmq::context_t& ctx,
-                                    std::chrono::milliseconds time) {
+std::thread shutdown_ctx_after_time(zmq::context_t& ctx, std::chrono::milliseconds time) {
     return std::thread([&ctx = ctx, time]() {
         std::this_thread::sleep_for(time);
         ctx.shutdown();
@@ -78,8 +73,7 @@ struct ConnectedSocketsPullAndPush {
     zmq::socket_t socketPush;
 
     ConnectedSocketsPullAndPush(zmq::context_t& ctx)
-        : socketPull{ctx, zmq::socket_type::pull},
-          socketPush{ctx, zmq::socket_type::push} {
+        : socketPull{ctx, zmq::socket_type::pull}, socketPush{ctx, zmq::socket_type::push} {
         socketPull.set(zmq::sockopt::linger, 0);
         socketPush.set(zmq::sockopt::linger, 0);
 
@@ -98,14 +92,10 @@ struct ConnectedSocketsWithHandlers {
     std::vector<zmq::message_t> messages;
 
     ConnectedSocketsWithHandlers(zmq::context_t& ctx)
-        : socketPull{std::make_unique<zmq::socket_t>(ctx,
-                                                     zmq::socket_type::pull)},
-          socketPush{
-              std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::push)},
-          socketPull2{
-              std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::pull)},
-          socketPush2{
-              std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::push)} {
+        : socketPull{std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::pull)},
+          socketPush{std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::push)},
+          socketPull2{std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::pull)},
+          socketPush2{std::make_unique<zmq::socket_t>(ctx, zmq::socket_type::push)} {
         socketPull->set(zmq::sockopt::linger, 0);
         socketPush->set(zmq::sockopt::linger, 0);
         socketPull2->set(zmq::sockopt::linger, 0);
@@ -120,8 +110,7 @@ struct ConnectedSocketsWithHandlers {
         socketPush2->connect(addr2);
     }
 
-    bool socketHandlerReceiveMaxMessages(zmqzext::loop_t&,
-                                         zmq::socket_ref socket) {
+    bool socketHandlerReceiveMaxMessages(zmqzext::loop_t&, zmq::socket_ref socket) {
         assert(messages.size() < maxMsgs);
         auto msg = recv_now_or_throw(socket);
         messages.emplace_back(std::move(msg));
@@ -129,23 +118,16 @@ struct ConnectedSocketsWithHandlers {
         return true;
     }
 
-    bool socketHandlerAddOtherSocket(zmqzext::loop_t& loop,
-                                     zmq::socket_ref socket,
-                                     zmq::socket_ref otherSocket) {
+    bool socketHandlerAddOtherSocket(zmqzext::loop_t& loop, zmq::socket_ref socket, zmq::socket_ref otherSocket) {
         using std::placeholders::_1;
         using std::placeholders::_2;
         auto msg = recv_now_or_throw(socket);
         messages.emplace_back(std::move(msg));
-        loop.add(
-            otherSocket,
-            std::bind(
-                &ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages,
-                this, _1, _2));
+        loop.add(otherSocket, std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, this, _1, _2));
         return true;
     }
 
-    bool socketHandlerRemoveSocketBeingHandled(zmqzext::loop_t& loop,
-                                               zmq::socket_ref socket) {
+    bool socketHandlerRemoveSocketBeingHandled(zmqzext::loop_t& loop, zmq::socket_ref socket) {
         auto msg = recv_now_or_throw(socket);
         messages.emplace_back(std::move(msg));
         if (socketPull && *socketPull == socket) {
@@ -158,8 +140,7 @@ struct ConnectedSocketsWithHandlers {
         return true;
     }
 
-    bool socketHandlerRemoveOtherSocket(zmqzext::loop_t& loop,
-                                        zmq::socket_ref socket) {
+    bool socketHandlerRemoveOtherSocket(zmqzext::loop_t& loop, zmq::socket_ref socket) {
         auto msg = recv_now_or_throw(socket);
         messages.emplace_back(std::move(msg));
         if (socketPull && *socketPull != socket) {
@@ -172,14 +153,12 @@ struct ConnectedSocketsWithHandlers {
         return true;
     }
 
-    bool socketHandlerAddTimer(zmqzext::loop_t& loop, zmq::socket_ref socket,
-                               zmqzext::fn_timer_handler_t handler) {
+    bool socketHandlerAddTimer(zmqzext::loop_t& loop, zmq::socket_ref socket, zmqzext::fn_timer_handler_t handler) {
         std::size_t const timerOcurrences{1};
         std::chrono::milliseconds timerTimeout{1};
         auto msg = recv_now_or_throw(socket);
         messages.emplace_back(std::move(msg));
-        auto const timer =
-            loop.add_timer(timerTimeout, timerOcurrences, handler);
+        auto const timer = loop.add_timer(timerTimeout, timerOcurrences, handler);
         return true;
     }
 
@@ -201,42 +180,35 @@ struct TimersHandlers {
         return true;
     }
 
-    bool timerHandlerReturnsFalse(zmqzext::loop_t&,
-                                  zmqzext::timer_id_t timerId) {
+    bool timerHandlerReturnsFalse(zmqzext::loop_t&, zmqzext::timer_id_t timerId) {
         timersHandled.push_back(timerId);
         return false;
     }
 
-    bool timerHandlerAddTimer(zmqzext::loop_t& loop,
-                              zmqzext::timer_id_t timerId) {
+    bool timerHandlerAddTimer(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId) {
         using std::placeholders::_1;
         using std::placeholders::_2;
         timersHandled.push_back(timerId);
-        timersAdded.push_back(loop.add_timer(
-            std::chrono::milliseconds{2}, 1,
-            std::bind(&TimersHandlers::timerHandler, this, _1, _2)));
+        timersAdded.push_back(
+            loop.add_timer(std::chrono::milliseconds{2}, 1, std::bind(&TimersHandlers::timerHandler, this, _1, _2)));
         return true;
     }
 
-    bool timerHandlerRemoveTimer(zmqzext::loop_t& loop,
-                                 zmqzext::timer_id_t timerId,
+    bool timerHandlerRemoveTimer(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId,
                                  zmqzext::timer_id_t const& timerToRevmove) {
         timersHandled.push_back(timerId);
         loop.remove_timer(timerToRevmove);
         return true;
     }
 
-    bool timerHandlerAddSocket(zmqzext::loop_t& loop,
-                               zmqzext::timer_id_t timerId,
-                               zmq::socket_ref socket,
+    bool timerHandlerAddSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, zmq::socket_ref socket,
                                zmqzext::fn_socket_handler_t handler) {
         timersHandled.push_back(timerId);
         loop.add(socket, handler);
         return true;
     }
 
-    bool timerHandlerRemoveSocket(zmqzext::loop_t& loop,
-                                  zmqzext::timer_id_t timerId,
+    bool timerHandlerRemoveSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId,
                                   std::unique_ptr<zmq::socket_t>& pSocket) {
         timersHandled.push_back(timerId);
         loop.remove(*pSocket);
@@ -244,9 +216,7 @@ struct TimersHandlers {
         return true;
     }
 
-    bool timerHandlerSendFromSocket(zmqzext::loop_t& loop,
-                                    zmqzext::timer_id_t timerId,
-                                    zmq::socket_ref socket) {
+    bool timerHandlerSendFromSocket(zmqzext::loop_t& loop, zmqzext::timer_id_t timerId, zmq::socket_ref socket) {
         std::string const msgStrToSend{"Message from timer"};
         timersHandled.push_back(timerId);
         send_now_or_throw(socket, msgStrToSend);

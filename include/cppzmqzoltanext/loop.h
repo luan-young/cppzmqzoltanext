@@ -33,13 +33,11 @@ private:
 
 public:
     void add(zmq::socket_ref socket, fn_socket_handler_t fn);
-    timer_id_t add_timer(std::chrono::milliseconds timeout,
-                         std::size_t occurences, fn_timer_handler_t fn);
+    timer_id_t add_timer(std::chrono::milliseconds timeout, std::size_t occurences, fn_timer_handler_t fn);
     void remove(zmq::socket_ref socket);
     void remove_timer(timer_id_t timer_id);
     void run(bool interruptible = true,
-             std::chrono::milliseconds interruptCheckInterval =
-                 std::chrono::milliseconds{-1});
+             std::chrono::milliseconds interruptCheckInterval = std::chrono::milliseconds{-1});
     bool terminated() const { return _poller.terminated(); }
 
 private:
@@ -48,8 +46,7 @@ private:
     void removeFlagedTimers();
     timer_id_t generate_unique_timer_id();
     template <class Rep, class Period>
-    time_milliseconds_t ceil_to_milliseconds(
-        std::chrono::duration<Rep, Period> const& duration);
+    time_milliseconds_t ceil_to_milliseconds(std::chrono::duration<Rep, Period> const& duration);
 
 private:
     poller_t _poller;

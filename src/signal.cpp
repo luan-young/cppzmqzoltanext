@@ -13,17 +13,11 @@ zmq::message_t create_signal_message(signal_t::type_t signal_type) {
 
 }  // namespace
 
-zmq::message_t signal_t::create_success() {
-    return create_signal_message(type_t::success);
-}
+zmq::message_t signal_t::create_success() { return create_signal_message(type_t::success); }
 
-zmq::message_t signal_t::create_failure() {
-    return create_signal_message(type_t::failure);
-}
+zmq::message_t signal_t::create_failure() { return create_signal_message(type_t::failure); }
 
-zmq::message_t signal_t::create_stop() {
-    return create_signal_message(type_t::stop);
-}
+zmq::message_t signal_t::create_stop() { return create_signal_message(type_t::stop); }
 
 std::optional<signal_t> signal_t::check_signal(const zmq::message_t& msg) {
     if (msg.size() != sizeof(uint64_t)) {

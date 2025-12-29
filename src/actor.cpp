@@ -29,8 +29,7 @@ void actor_t::start(actor_fn_t func) {
     _started = true;
 
     // Start the thread and execute the function with shared exception state
-    std::thread thread([this, exception_state = _exception_state, func,
-                        socket = std::move(_child_socket)]() mutable {
+    std::thread thread([this, exception_state = _exception_state, func, socket = std::move(_child_socket)]() mutable {
         this->execute(func, std::move(socket), exception_state);
     });
     thread.detach();  // Thread will run independently
@@ -57,29 +56,25 @@ void actor_t::start(actor_fn_t func) {
     throw std::runtime_error("Failed to receive initialization signal");
 }
 
-bool actor_t::stop(
-    std::chrono::milliseconds timeout /* = std::chrono::milliseconds{-1}*/) {
+bool actor_t::stop(std::chrono::milliseconds timeout /* = std::chrono::milliseconds{-1}*/) {
     if (!_started || _stopped) {
         return false;
     }
 
     auto msg_send = signal_t::create_stop();
-    auto const result_send =
-        _parent_socket.send(msg_send, zmq::send_flags::dontwait);
+    auto const result_send = _parent_socket.send(msg_send, zmq::send_flags::dontwait);
     if (!result_send) {
         _stopped = true;
         return true;
     }
 
     // set socket option rcvtimeout
-    int timeout_ms =
-        (timeout.count() < 0) ? -1 : static_cast<int>(timeout.count());
+    int timeout_ms = (timeout.count() < 0) ? -1 : static_cast<int>(timeout.count());
     _parent_socket.set(zmq::sockopt::rcvtimeo, timeout_ms);
 
     // Wait for response with timeout
     zmq::message_t msg_recv;
-    auto const result_recv =
-        _parent_socket.recv(msg_recv, zmq::recv_flags::none);
+    auto const result_recv = _parent_socket.recv(msg_recv, zmq::recv_flags::none);
     if (!result_recv) {
         _stopped = true;
         return false;
@@ -102,8 +97,7 @@ void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
         auto const success = func(*socket);
 
         // Send success or failure signal based on return value
-        auto signal =
-            success ? signal_t::create_success() : signal_t::create_failure();
+        auto signal = success ? signal_t::create_success() : signal_t::create_failure();
         socket->send(signal, zmq::send_flags::none);
     } catch (zmq::error_t const&) {
     } catch (...) {
@@ -129,9 +123,7 @@ std::string actor_t::bind_to_unique_address() {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 999999);
-    std::string base_address =
-        "inproc://zmqzext-actor-" +
-        std::to_string(reinterpret_cast<uintptr_t>(this));
+    std::string base_address = "inproc://zmqzext-actor-" + std::to_string(reinterpret_cast<uintptr_t>(this));
 
     while (true) {
         try {

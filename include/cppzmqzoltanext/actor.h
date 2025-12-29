@@ -84,8 +84,7 @@ public:
      * @return true if successfully stopped, false if timed out or wasn't
      * started
      */
-    bool stop(std::chrono::milliseconds timeout = std::chrono::milliseconds{
-                  -1});
+    bool stop(std::chrono::milliseconds timeout = std::chrono::milliseconds{-1});
 
     /**
      * @brief Gets the parent socket for external communication
@@ -154,8 +153,7 @@ private:
     std::shared_ptr<SharedExceptionState> _exception_state;
     bool _started;
     bool _stopped;
-    std::chrono::milliseconds _timeout_on_destructor{
-        DEFAULT_DESTRUCTOR_TIMEOUT};
+    std::chrono::milliseconds _timeout_on_destructor{DEFAULT_DESTRUCTOR_TIMEOUT};
 
 public:
     /**
