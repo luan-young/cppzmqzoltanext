@@ -201,6 +201,12 @@ struct TimersHandlers {
         return true;
     }
 
+    bool timerHandlerReturnsFalse(zmqzext::loop_t&,
+                                  zmqzext::timer_id_t timerId) {
+        timersHandled.push_back(timerId);
+        return false;
+    }
+
     bool timerHandlerAddTimer(zmqzext::loop_t& loop,
                               zmqzext::timer_id_t timerId) {
         using std::placeholders::_1;

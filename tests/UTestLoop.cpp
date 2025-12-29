@@ -270,6 +270,44 @@ TEST_F(UTestLoop, ManyTimerHandlersAreCalledManyTimes) {
                             timerId1));
 }
 
+TEST_F(UTestLoop, KeepsRunningLoopUntilTimerHandlerReturnsFalse) {
+    std::size_t const timerOcurrences{10};
+    std::chrono::milliseconds timerTimeout{1};
+    TimersHandlers timersHandlers{};
+
+    auto const timerId =
+        loop.add_timer(timerTimeout, timerOcurrences,
+                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
+                                 &timersHandlers, _1, _2));
+
+    loop.run();
+
+    ASSERT_EQ(1, timersHandlers.timersHandled.size());
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId));
+}
+
+TEST_F(UTestLoop, KeepsRunningLoopUntilTimerHandlerReturnsFalse2) {
+    std::size_t const timer1Ocurrences{10};
+    std::chrono::milliseconds timer1Timeout{1};
+    std::size_t const timer2Ocurrences{10};
+    std::chrono::milliseconds timer2Timeout{1};
+    TimersHandlers timersHandlers{};
+
+    auto const timerId1 =
+        loop.add_timer(timer1Timeout, timer1Ocurrences,
+                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
+                                 &timersHandlers, _1, _2));
+    auto const timerId2 =
+        loop.add_timer(timer2Timeout, timer2Ocurrences,
+                       std::bind(&TimersHandlers::timerHandlerReturnsFalse,
+                                 &timersHandlers, _1, _2));
+
+    loop.run();
+
+    ASSERT_EQ(1, timersHandlers.timersHandled.size());
+    EXPECT_THAT(timersHandlers.timersHandled, ElementsAre(timerId1));
+}
+
 TEST_F(UTestLoop, TimerHandlerWithZeroOccurencesIsCalledForever) {
     std::size_t const timerOcurrences{0};
     std::chrono::milliseconds timerTimeout{1};

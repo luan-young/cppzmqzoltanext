@@ -60,8 +60,10 @@ void loop_t::run(
              timer_it != _timer_handlers.end();) {
             if (timer_it->removed == false &&
                 current_time >= timer_it->next_occurence) {
-                should_continue = timer_it->handler(
-                    *this, timer_it->id);  // TODO: check should_continue
+                should_continue = timer_it->handler(*this, timer_it->id);
+                if (!should_continue) {
+                    break;
+                }
                 if (timer_it->occurences > 0 && --timer_it->occurences == 0) {
                     timer_it = _timer_handlers.erase(timer_it);
                     continue;
@@ -70,6 +72,9 @@ void loop_t::run(
                 }
             }
             ++timer_it;
+        }
+        if (!should_continue) {
+            break;
         }
         for (auto& socket : sockets_ready) {
             auto const socket_handler_it = _socket_handlers.find(socket);
