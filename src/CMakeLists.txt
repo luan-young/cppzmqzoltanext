@@ -9,6 +9,7 @@ set(CZZE_SOURCES
 	actor.cpp
 	signal.cpp
 	interrupt.cpp
+	helpers.cpp
 )
 
 set(CZZE_PUBLIC_HEADERS
@@ -17,6 +18,7 @@ set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/actor.h
 	../include/cppzmqzoltanext/signal.h
 	../include/cppzmqzoltanext/interrupt.h
+	../include/cppzmqzoltanext/helpers.h
     ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
 )
 
