@@ -5,8 +5,13 @@
 namespace zmqzext {
 
 void loop_t::add(zmq::socket_ref socket, fn_socket_handler_t fn) {
-    _socket_handlers.emplace(socket, fn);
     _poller.add(socket);
+    try {
+        _socket_handlers.emplace(socket, fn);
+    } catch (...) {
+        _poller.remove(socket);
+        throw;
+    }
 }
 
 timer_id_t loop_t::add_timer(std::chrono::milliseconds timeout, std::size_t occurences, fn_timer_handler_t fn) {
@@ -17,12 +22,12 @@ timer_id_t loop_t::add_timer(std::chrono::milliseconds timeout, std::size_t occu
 }
 
 void loop_t::remove(zmq::socket_ref socket) {
+    _poller.remove(socket);
     auto const socket_handler_it = _socket_handlers.find(socket);
     if (socket_handler_it == _socket_handlers.end()) {
         return;
     }
     _socket_handlers.erase(socket_handler_it);
-    _poller.remove(socket);
 }
 
 void loop_t::remove_timer(timer_id_t timer_id) {
@@ -97,20 +102,11 @@ loop_t::time_milliseconds_t loop_t::find_next_timeout(time_point_t const& actual
     if (_interruptCheckInterval > time_milliseconds_t{0} && time_left > _interruptCheckInterval) {
         return _interruptCheckInterval;
     }
-    return std::max(time_milliseconds_t{0}, ceil_to_milliseconds(time_left));
+    return std::max(time_milliseconds_t{0}, std::chrono::ceil<time_milliseconds_t>(time_left));
 }
 
 void loop_t::removeFlagedTimers() {
     _timer_handlers.remove_if([](timer_t const& timer) { return timer.removed; });
-}
-
-template <class Rep, class Period>
-loop_t::time_milliseconds_t loop_t::ceil_to_milliseconds(std::chrono::duration<Rep, Period> const& duration) {
-    time_milliseconds_t t = std::chrono::duration_cast<time_milliseconds_t>(duration);
-    if (t < duration) {
-        return t + time_milliseconds_t{1};
-    }
-    return t;
 }
 
 timer_id_t loop_t::generate_unique_timer_id() {

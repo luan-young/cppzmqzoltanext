@@ -45,8 +45,6 @@ private:
     time_milliseconds_t find_next_timeout(time_point_t const& actual_time);
     void removeFlagedTimers();
     timer_id_t generate_unique_timer_id();
-    template <class Rep, class Period>
-    time_milliseconds_t ceil_to_milliseconds(std::chrono::duration<Rep, Period> const& duration);
 
 private:
     poller_t _poller;
