@@ -19,7 +19,7 @@ zmq::message_t signal_t::create_failure() { return create_signal_message(type_t:
 
 zmq::message_t signal_t::create_stop() { return create_signal_message(type_t::stop); }
 
-std::optional<signal_t> signal_t::check_signal(const zmq::message_t& msg) {
+std::optional<signal_t> signal_t::check_signal(const zmq::message_t& msg) noexcept {
     if (msg.size() != sizeof(uint64_t)) {
         return std::nullopt;
     }

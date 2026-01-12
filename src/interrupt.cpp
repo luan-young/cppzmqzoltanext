@@ -24,13 +24,13 @@ static void (*stored_sigterm_handler)(int) = nullptr;
 void signal_handler(int /*signal*/) { zmqzext_interrupted.store(true, std::memory_order_relaxed); }
 
 #if !defined(WIN32)
-void store_signal_handlers() {
+void store_signal_handlers() noexcept {
     sigaction(SIGINT, nullptr, &stored_sigint);
     sigaction(SIGTERM, nullptr, &stored_sigterm);
     handlers_stored = true;
 }
 
-void setup_signal_handlers() {
+void setup_signal_handlers() noexcept {
     struct sigaction action;
     action.sa_handler = signal_handler;
     action.sa_flags = 0;
@@ -44,7 +44,7 @@ void setup_signal_handlers() {
 }  // namespace
 
 #if !defined(WIN32)
-void install_interrupt_handler() {
+void install_interrupt_handler() noexcept {
     // Store current handlers only if not already stored or after a restore
     if (!handlers_stored) {
         store_signal_handlers();
@@ -52,7 +52,7 @@ void install_interrupt_handler() {
     setup_signal_handlers();
 }
 
-void restore_interrupt_handler() {
+void restore_interrupt_handler() noexcept {
     if (handlers_stored) {
         sigaction(SIGINT, &stored_sigint, nullptr);
         sigaction(SIGTERM, &stored_sigterm, nullptr);
@@ -60,7 +60,7 @@ void restore_interrupt_handler() {
     }
 }
 #else
-void install_interrupt_handler() {
+void install_interrupt_handler() noexcept {
     if (!handlers_stored) {
         stored_sigint_handler = std::signal(SIGINT, signal_handler);
         stored_sigterm_handler = std::signal(SIGTERM, signal_handler);
@@ -71,7 +71,7 @@ void install_interrupt_handler() {
     }
 }
 
-void restore_interrupt_handler() {
+void restore_interrupt_handler() noexcept {
     if (handlers_stored) {
         std::signal(SIGINT, stored_sigint_handler);
         std::signal(SIGTERM, stored_sigterm_handler);
@@ -80,8 +80,8 @@ void restore_interrupt_handler() {
 }
 #endif
 
-bool is_interrupted() { return zmqzext_interrupted.load(std::memory_order_relaxed); }
+bool is_interrupted() noexcept { return zmqzext_interrupted.load(std::memory_order_relaxed); }
 
-void reset_interrupted() { zmqzext_interrupted.store(false, std::memory_order_relaxed); }
+void reset_interrupted() noexcept { zmqzext_interrupted.store(false, std::memory_order_relaxed); }
 
 }  // namespace zmqzext

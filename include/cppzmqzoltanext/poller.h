@@ -12,10 +12,10 @@ class CZZE_EXPORT poller_t {
 public:
     void add(zmq::socket_ref socket);
     void remove(zmq::socket_ref socket);
-    void set_interruptible(bool interruptible) { _interruptible = interruptible; }
-    bool is_interruptible() const { return _interruptible; }
-    std::size_t size() const { return _poll_items.size(); }
-    bool terminated() const { return _terminated; }
+    void set_interruptible(bool interruptible) noexcept { _interruptible = interruptible; }
+    bool is_interruptible() const noexcept { return _interruptible; }
+    std::size_t size() const noexcept { return _poll_items.size(); }
+    bool terminated() const noexcept { return _terminated; }
 
     zmq::socket_ref wait(std::chrono::milliseconds timeout = std::chrono::milliseconds{-1});
     std::vector<zmq::socket_ref> wait_all(std::chrono::milliseconds timeout = std::chrono::milliseconds{-1});

@@ -21,7 +21,7 @@ actor_t::actor_t(zmq::context_t& context)
     _child_socket->connect(address);
 }
 
-actor_t::~actor_t() {
+actor_t::~actor_t() noexcept {
     try {
         stop(_timeout_on_destructor);
     } catch (...) {
@@ -106,14 +106,8 @@ bool actor_t::stop(std::chrono::milliseconds timeout /* = std::chrono::milliseco
     return true;
 }
 
-zmq::socket_t& actor_t::socket() { return _parent_socket; }
-
-bool actor_t::is_started() const { return _started; }
-
-bool actor_t::is_stopped() const { return _stopped; }
-
 void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
-                      std::shared_ptr<SharedExceptionState> exception_state) {
+                      std::shared_ptr<SharedExceptionState> exception_state) noexcept {
     try {
         auto const success = func(*socket);
 

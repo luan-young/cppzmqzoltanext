@@ -26,25 +26,25 @@ public:
      * @brief Get the type of the signal
      * @return The signal type
      */
-    type_t type() const { return _type; }
+    type_t type() const noexcept { return _type; }
 
     /**
      * @brief Check if this signal is a success signal
      * @return true if success signal, false otherwise
      */
-    bool is_success() const { return _type == type_t::success; }
+    bool is_success() const noexcept { return _type == type_t::success; }
 
     /**
      * @brief Check if this signal is a failure signal
      * @return true if failure signal, false otherwise
      */
-    bool is_failure() const { return _type == type_t::failure; }
+    bool is_failure() const noexcept { return _type == type_t::failure; }
 
     /**
      * @brief Check if this signal is a stop signal
      * @return true if stop signal, false otherwise
      */
-    bool is_stop() const { return _type == type_t::stop; }
+    bool is_stop() const noexcept { return _type == type_t::stop; }
 
     /**
      * @brief Create a success signal message
@@ -70,10 +70,10 @@ public:
      * @return std::optional<signal_t> The signal if valid, std::nullopt
      * otherwise
      */
-    static std::optional<signal_t> check_signal(const zmq::message_t& msg);
+    static std::optional<signal_t> check_signal(const zmq::message_t& msg) noexcept;
 
 private:
-    explicit signal_t(type_t type) : _type(type) {}
+    explicit signal_t(type_t type) noexcept : _type(type) {}
     type_t _type;
 };
 

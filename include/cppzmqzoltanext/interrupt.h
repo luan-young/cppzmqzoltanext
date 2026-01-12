@@ -17,7 +17,7 @@ namespace zmqzext {
  * If this is the first call or if called after restore_interrupt_handler(),
  * it will store the current signal handlers before installing new ones.
  */
-CZZE_EXPORT void install_interrupt_handler();
+CZZE_EXPORT void install_interrupt_handler() noexcept;
 
 /**
  * @brief Restore the previously stored signal handlers
@@ -30,13 +30,13 @@ CZZE_EXPORT void install_interrupt_handler();
  * After this call, the next call to install_interrupt_handler() will store
  * the current handlers again.
  */
-CZZE_EXPORT void restore_interrupt_handler();
+CZZE_EXPORT void restore_interrupt_handler() noexcept;
 
 /**
  * @brief Check if a program interrupt was received (SIGINT or SIGTERM)
  * @return true if an interrupt was received, false otherwise
  */
-CZZE_EXPORT bool is_interrupted();
+CZZE_EXPORT bool is_interrupted() noexcept;
 
 /**
  * @brief Reset the interrupt flag to false
@@ -46,6 +46,6 @@ CZZE_EXPORT bool is_interrupted();
  * handle an interrupt and then continue execution while still monitoring
  * for future interrupts.
  */
-CZZE_EXPORT void reset_interrupted();
+CZZE_EXPORT void reset_interrupted() noexcept;
 
 }  // namespace zmqzext

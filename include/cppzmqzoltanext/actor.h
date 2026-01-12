@@ -54,7 +54,7 @@ public:
      *
      * Calls stop with a timeout to avoid blocking forever.
      */
-    ~actor_t();
+    ~actor_t() noexcept;
 
     /**
      * @brief Starts the actor thread with the provided function
@@ -91,33 +91,33 @@ public:
      *
      * @return zmq::socket_t& Reference to the parent socket
      */
-    zmq::socket_t& socket();
+    zmq::socket_t& socket() noexcept { return _parent_socket; }
 
     /**
      * @brief Checks if the actor thread was started
      *
      * @return true if started, false otherwise
      */
-    bool is_started() const;
+    bool is_started() const noexcept { return _started; }
 
     /**
      * @brief Checks if the actor thread was stopped
      *
      * @return true if stopped, false otherwise
      */
-    bool is_stopped() const;
+    bool is_stopped() const noexcept { return _stopped; }
 
     /**
      * @brief Sets the timeout value used in the destructor
      * @param timeout The timeout value in milliseconds
      */
-    void set_destructor_timeout(std::chrono::milliseconds timeout) { _timeout_on_destructor = timeout; }
+    void set_destructor_timeout(std::chrono::milliseconds timeout) noexcept { _timeout_on_destructor = timeout; }
 
     /**
      * @brief Gets the current timeout value used in the destructor
      * @return The current timeout value in milliseconds
      */
-    std::chrono::milliseconds get_destructor_timeout() const { return _timeout_on_destructor; }
+    std::chrono::milliseconds get_destructor_timeout() const noexcept { return _timeout_on_destructor; }
 
 private:
     /**
@@ -147,7 +147,7 @@ private:
      * @param exception_state The shared exception state for error handling
      */
     void execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
-                 std::shared_ptr<SharedExceptionState> exception_state);
+                 std::shared_ptr<SharedExceptionState> exception_state) noexcept;
 
     /**
      * @brief Binds the parent socket to a unique address

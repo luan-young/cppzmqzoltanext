@@ -38,7 +38,7 @@ public:
     void remove_timer(timer_id_t timer_id);
     void run(bool interruptible = true,
              std::chrono::milliseconds interruptCheckInterval = std::chrono::milliseconds{-1});
-    bool terminated() const { return _poller.terminated(); }
+    bool terminated() const noexcept { return _poller.terminated(); }
 
 private:
     time_point_t now();
