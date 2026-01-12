@@ -107,6 +107,18 @@ public:
      */
     bool is_stopped() const;
 
+    /**
+     * @brief Sets the timeout value used in the destructor
+     * @param timeout The timeout value in milliseconds
+     */
+    void set_destructor_timeout(std::chrono::milliseconds timeout) { _timeout_on_destructor = timeout; }
+
+    /**
+     * @brief Gets the current timeout value used in the destructor
+     * @return The current timeout value in milliseconds
+     */
+    std::chrono::milliseconds get_destructor_timeout() const { return _timeout_on_destructor; }
+
 private:
     /**
      * @brief Default timeout value for destructor in milliseconds
@@ -154,19 +166,6 @@ private:
     bool _started;
     bool _stopped;
     std::chrono::milliseconds _timeout_on_destructor{DEFAULT_DESTRUCTOR_TIMEOUT};
-
-public:
-    /**
-     * @brief Sets the timeout value used in the destructor
-     * @param timeout The timeout value in milliseconds
-     */
-    void set_destructor_timeout(std::chrono::milliseconds timeout);
-
-    /**
-     * @brief Gets the current timeout value used in the destructor
-     * @return The current timeout value in milliseconds
-     */
-    std::chrono::milliseconds get_destructor_timeout() const;
 };
 
 }  // namespace zmqzext

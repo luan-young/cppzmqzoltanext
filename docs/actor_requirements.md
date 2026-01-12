@@ -57,7 +57,7 @@ The private execute method must:
 
 The stop method must:
 
-- Return false if the thread was not started or was already stopped.
+- Return true if the thread was not started or was already stopped.
 - Send a stop request message and then wait for a signal from the user-provided function indicating that it has finished processing messages and is ready to be stopped.
 - Clean up the parent socket and return true for success.
 - The stop request message must not be blocking so the signal waiting is skipped if the stop request could not be sent (e.g. if the user-provided function has already finished and closed the socket). Dough, the cleanup must still be performed and return true for success.

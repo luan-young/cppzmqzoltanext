@@ -1,4 +1,5 @@
 #include <cppzmqzoltanext/actor.h>
+#include <cppzmqzoltanext/helpers.h>
 #include <cppzmqzoltanext/interrupt.h>
 #include <cppzmqzoltanext/loop.h>
 #include <cppzmqzoltanext/signal.h>
@@ -27,11 +28,7 @@ class UTestActor : public ::testing::Test {
 public:
     zmq::context_t ctx;
 
-    bool simpleActorFunction(zmq::socket_t& socket) {
-        // Send success signal
-        socket.send(signal_t::create_success(), zmq::send_flags::none);
-
-        // process messages until receiving stop message
+    bool processMessagesUntilStop(zmq::socket_t& socket) {
         while (true) {
             try {
                 zmq::message_t msg;
@@ -49,29 +46,34 @@ public:
         return false;
     }
 
+    bool simpleActorFunction(zmq::socket_t& socket) {
+        // Send success signal
+        send_retry_on_eintr(socket, signal_t::create_success(), zmq::send_flags::none);
+
+        return processMessagesUntilStop(socket);
+    }
+
     bool busyActorFunction(zmq::socket_t& socket, std::chrono::milliseconds busy_time) {
         // Send success signal
-        socket.send(signal_t::create_success(), zmq::send_flags::none);
+        send_retry_on_eintr(socket, signal_t::create_success(), zmq::send_flags::none);
 
         // Simulate being busy for a while before checking for stop message
         std::this_thread::sleep_for(busy_time);
 
-        // process messages until receiving stop message
-        while (true) {
-            try {
-                zmq::message_t msg;
-                auto result = socket.recv(msg, zmq::recv_flags::none);
-                if (result) {
-                    auto signal = signal_t::check_signal(msg);
-                    if (signal && signal->is_stop()) {
-                        return true;
-                    }
-                }
-            } catch (...) {
-                // Ignore exceptions and continue
-            }
+        return processMessagesUntilStop(socket);
+    }
+
+    bool senderActorFunction(zmq::socket_t& socket, int num_messages, std::chrono::milliseconds interval) {
+        // Send success signal
+        send_retry_on_eintr(socket, signal_t::create_success(), zmq::send_flags::none);
+
+        for (int i = 0; i < num_messages; ++i) {
+            std::this_thread::sleep_for(interval);
+            // Send a message
+            socket.send(zmq::message_t(std::string{"test"}), zmq::send_flags::none);
         }
-        return false;
+
+        return processMessagesUntilStop(socket);
     }
 
     bool failingDuringInitializationActorFunction(zmq::socket_t& socket) {
@@ -87,7 +89,7 @@ public:
 
     bool badActorFunctionThatReturnsWithoutBeingRequested(zmq::socket_t& socket) {
         // Send success signal
-        socket.send(signal_t::create_success(), zmq::send_flags::none);
+        send_retry_on_eintr(socket, signal_t::create_success(), zmq::send_flags::none);
 
         // Simulate work being done
         std::this_thread::sleep_for(10ms);
@@ -187,6 +189,18 @@ TEST_F(UTestActor, ExceptionDuringStart) {
     EXPECT_TRUE(actor.is_stopped());
 }
 
+TEST_F(UTestActor, StopWithSufficientTimeout) {
+    actor_t actor{ctx};
+
+    actor.start(std::bind(&UTestActor::busyActorFunction, this, std::placeholders::_1, 10ms));
+
+    // Try to stop with a sufficient timeout
+    EXPECT_TRUE(actor.stop(100ms));
+
+    EXPECT_TRUE(actor.is_stopped());
+    // std::cout << "Actor stopped successfully with sufficient timeout\n";
+}
+
 TEST_F(UTestActor, StopWithInsufficientTimeout) {
     actor_t actor{ctx};
 
@@ -198,16 +212,46 @@ TEST_F(UTestActor, StopWithInsufficientTimeout) {
     EXPECT_TRUE(actor.is_stopped());
 }
 
-TEST_F(UTestActor, StopWithSufficientTimeout) {
+TEST_F(UTestActor, StopShouldWaitForReplyMessageBeingASignal) {
     actor_t actor{ctx};
 
-    actor.start(std::bind(&UTestActor::busyActorFunction, this, std::placeholders::_1, 10ms));
+    actor.start(std::bind(&UTestActor::senderActorFunction, this, std::placeholders::_1, 5, 10ms));
 
-    // Try to stop with a sufficient timeout
+    auto const startTime = std::chrono::steady_clock::now();
     EXPECT_TRUE(actor.stop(100ms));
+    auto const timeToStop = std::chrono::steady_clock::now() - startTime;
 
-    EXPECT_TRUE(actor.is_stopped());
-    // std::cout << "Actor stopped successfully with sufficient timeout\n";
+    EXPECT_GE(timeToStop, 40ms);
+    EXPECT_LE(timeToStop, 60ms);
+}
+
+TEST_F(UTestActor, StopWithInsufficientTimeoutDueToMessageNotBeingASignal) {
+    actor_t actor{ctx};
+
+    actor.start(std::bind(&UTestActor::senderActorFunction, this, std::placeholders::_1, 5, 10ms));
+
+    auto const startTime = std::chrono::steady_clock::now();
+    EXPECT_FALSE(actor.stop(20ms));
+    auto const timeToStop = std::chrono::steady_clock::now() - startTime;
+
+    EXPECT_LE(timeToStop, 25ms);
+}
+
+TEST_F(UTestActor, ClosingContextBlocksUnitlActorFunctionEnds) {
+    actor_t actor{ctx};
+
+    actor.start(std::bind(&UTestActor::busyActorFunction, this, std::placeholders::_1, 50ms));
+
+    auto const startTime = std::chrono::steady_clock::now();
+    actor.stop(10ms);
+    auto const timeToStop = std::chrono::steady_clock::now() - startTime;
+
+    ctx.close();
+    auto const timeToCtxShutdown = std::chrono::steady_clock::now() - startTime;
+
+    EXPECT_GE(timeToStop, 10ms) << timeToStop.count();
+    EXPECT_LE(timeToStop, 20ms);
+    EXPECT_GE(timeToCtxShutdown, 50ms);
 }
 
 TEST_F(UTestActor, DestructorWithRunningActor) {
