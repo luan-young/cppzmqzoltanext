@@ -1,3 +1,59 @@
+/**
+ * @file actor.h
+ * @brief Actor pattern implementation using ZeroMQ PAIR sockets
+ *
+ * This module provides the actor_t class, which implements the Actor pattern
+ * for concurrent programming. An actor is an independent execution unit
+ * (running in its own thread) that runs a user-defined function and
+ * communicates with the parent through ZeroMQ PAIR sockets.
+ *
+ * @details
+ * Key features:
+ * - Thread-safe concurrent execution with minimal synchronization
+ * - Isolated computational units that don't share memory
+ * - Message-based communication between parent and child threads
+ * - Exception handling and propagation from child to parent during initialization
+ * - Automatic cleanup and resource management
+ *
+ * ## Thread Safety
+ *
+ * The actor_t class is NOT thread-safe for most operations. The design aims to
+ * avoid memory sharing between the parent and child threads, except for the child
+ * socket passed to the user function. The actor_t object and its parent socket
+ * should only be accessed from the thread that created the actor. The child
+ * socket is passed to the user function and runs in the actor thread. Additional
+ * parameters can be passed to the user function via captures in lambdas or
+ * functors, but the lifetime of passed parameters must be managed carefully.
+ * Usually, parameters should be copied or moved into the user function to avoid
+ * dangling references. Pointers where the ownership is transferred to the user
+ * function are also acceptable.
+ *
+ * ## Initialization Synchronization
+ *
+ * The start() method blocks until the user function sends either a success or
+ * failure signal. This ensures initialization of the actor is synchronized
+ * with the calling thread.
+ *
+ * ## Exception Handling
+ *
+ * If an exception is thrown in the user function (other than zmq::error_t)
+ * before sending the success signal, it will be captured and re-thrown in
+ * the start() method, allowing the parent to handle initialization errors.
+ * After sending the success signal, its the user's responsibility to handle
+ * exceptions within the user function. Still, the actor_t class will catch
+ * unhandled exceptions and silently exit the thread to avoid crashing the application.
+ *
+ * ## Finalization Synchronization
+ *
+ * The user function finalization is requested by the stop() method which can be called
+ * explicitly or is implicitly by the destructor. The stop() method sends a stop request and waits
+ * for a response signal, with a configurable timeout. It is the user's responsibility
+ * to handle the stop request in the user function and exit immediately.
+ * Usually, the user function communicates to the parent application that it has finished
+ * its work (either by its own logic or by a previous request) and then the parent
+ * application destroys the actor, starting the stop synchronization.
+ */
+
 #pragma once
 
 #include <chrono>
@@ -17,8 +73,14 @@ namespace zmqzext {
  * or functor) that takes a reference to a zmq::socket_t and returns a boolean
  * value.
  *
- * The boolean return value indicates that the actor should finish with a
- * success signal while false indicates it should finish with a failure signal.
+ * The actor should send a success signal through the provided socket as soon
+ * as it has completed its initialization successfully. If initialization fails,
+ * it may throw an exception, which will be rethrown in the parent thread, or
+ * just return false, which will throw a std::runtime_error in the parent thread.
+ *
+ * After the actor sends the success signal, it should monitor for stop requests
+ * and return immediately when a stop request is received. The return value has
+ * no meaning after initialization.
  *
  * @param socket Reference to a ZeroMQ socket used by the actor for
  * communication.
@@ -52,7 +114,7 @@ public:
     /**
      * @brief Destroys the actor_t object
      *
-     * Calls stop with a timeout to avoid blocking forever.
+     * Calls stop with the configurable destructor timeout to avoid blocking forever.
      */
     ~actor_t() noexcept;
 
@@ -62,11 +124,12 @@ public:
      * Launches a new thread executing the provided function and blocks until
      * receiving a success or failure signal. On success signal, returns
      * normally. On failure signal, rethrows any saved exception from the
-     * execute method or throws a specific exception.
+     * execute method or throws std::runtime_error.
      *
      * @param func The function to be executed in the new thread. Must take a
      * zmq::socket_t& and return bool
-     * @throws std::runtime_error If the thread was already started
+     * @throws std::runtime_error If the thread was already started or if the
+     * function signals failure during function initialization
      * @throws Rethrows any exception caught during function initialization
      */
     void start(actor_fn_t func);
@@ -81,8 +144,8 @@ public:
      *
      * @param timeout_ms The timeout in milliseconds. 0 for non-blocking,
      * negative for infinite
-     * @return true if successfully stopped, false if timed out or wasn't
-     * started
+     * @return true if successfully stopped, wasn't started or was already stopped,
+     * false if timed out
      */
     bool stop(std::chrono::milliseconds timeout = std::chrono::milliseconds{-1});
 
