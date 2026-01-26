@@ -1,3 +1,26 @@
+/*
+MIT License
+
+Copyright (c) 2025 Luan Young
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 /**
  * @file helpers.h
  * @brief Helper utilities for robust ZMQ message sending and receiving
@@ -18,8 +41,13 @@
  * - Configurable send/receive flags
  * - Returns original ZMQ result types for integration
  *
- * @author CppZmqZoltanExt Contributors
- * @date 2025
+ * @authors
+ * Luan Young (luanpy@gmail.com)
+ *
+ * @copyright 2025 Luan Young
+ *
+ * Distributed under the MIT License (MIT) (See accompanying file LICENSE
+ * or copy at http://opensource.org/licenses/MIT)
  */
 
 #pragma once
@@ -42,10 +70,12 @@ namespace zmqzext {
  * @return The send result containing the number of bytes sent
  *
  * @throw zmq::error_t if an error occurs (other than EINTR)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::message_t&, zmq::send_flags)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::message_t&&, zmq::send_flags)
+ * @note Overloads are provided for socket parameter types zmq::socket_t and zmq::socket_ref
+ * @see send_retry_on_eintr(T&, zmq::message_t&, zmq::send_flags)
+ * @see send_retry_on_eintr(T&, zmq::message_t&&, zmq::send_flags)
  */
-CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::const_buffer const& buf,
+template <typename T>
+CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(T& socket, zmq::const_buffer const& buf,
                                                    zmq::send_flags flags = zmq::send_flags::none);
 
 /**
@@ -60,10 +90,12 @@ CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::c
  * @return The send result containing the number of bytes sent
  *
  * @throw zmq::error_t if an error occurs (other than EINTR)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::const_buffer const&, zmq::send_flags)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::message_t&&, zmq::send_flags)
+ * @note Overloads are provided for socket parameter types zmq::socket_t and zmq::socket_ref
+ * @see send_retry_on_eintr(T&, zmq::const_buffer const&, zmq::send_flags)
+ * @see send_retry_on_eintr(T&, zmq::message_t&&, zmq::send_flags)
  */
-CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::message_t& msg,
+template <typename T>
+CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(T& socket, zmq::message_t& msg,
                                                    zmq::send_flags flags = zmq::send_flags::none);
 
 /**
@@ -78,10 +110,12 @@ CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::m
  * @return The send result containing the number of bytes sent
  *
  * @throw zmq::error_t if an error occurs (other than EINTR)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::const_buffer const&, zmq::send_flags)
- * @see send_retry_on_eintr(zmq::socket_t&, zmq::message_t&, zmq::send_flags)
+ * @note Overloads are provided for socket parameter types zmq::socket_t and zmq::socket_ref
+ * @see send_retry_on_eintr(T&, zmq::const_buffer const&, zmq::send_flags)
+ * @see send_retry_on_eintr(T&, zmq::message_t&, zmq::send_flags)
  */
-CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::message_t&& msg,
+template <typename T>
+CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(T& socket, zmq::message_t&& msg,
                                                    zmq::send_flags flags = zmq::send_flags::none);
 
 /**
@@ -97,9 +131,11 @@ CZZE_EXPORT zmq::send_result_t send_retry_on_eintr(zmq::socket_t& socket, zmq::m
  *         the actual buffer used
  *
  * @throw zmq::error_t if an error occurs (other than EINTR)
- * @see recv_retry_on_eintr(zmq::socket_t&, zmq::message_t&, zmq::recv_flags)
+ * @note Overloads are provided for socket parameter types zmq::socket_t and zmq::socket_ref
+ * @see recv_retry_on_eintr(T&, zmq::message_t&, zmq::recv_flags)
  */
-CZZE_EXPORT zmq::recv_buffer_result_t recv_retry_on_eintr(zmq::socket_t& socket, zmq::mutable_buffer const& buf,
+template <typename T>
+CZZE_EXPORT zmq::recv_buffer_result_t recv_retry_on_eintr(T& socket, zmq::mutable_buffer const& buf,
                                                           zmq::recv_flags flags = zmq::recv_flags::none);
 
 /**
@@ -115,9 +151,11 @@ CZZE_EXPORT zmq::recv_buffer_result_t recv_retry_on_eintr(zmq::socket_t& socket,
  * @return The receive result containing the number of bytes received
  *
  * @throw zmq::error_t if an error occurs (other than EINTR)
- * @see recv_retry_on_eintr(zmq::socket_t&, zmq::mutable_buffer const&, zmq::recv_flags)
+ * @note Overloads are provided for socket parameter types zmq::socket_t and zmq::socket_ref
+ * @see recv_retry_on_eintr(T&, zmq::mutable_buffer const&, zmq::recv_flags)
  */
-CZZE_EXPORT zmq::recv_result_t recv_retry_on_eintr(zmq::socket_t& socket, zmq::message_t& msg,
+template <typename T>
+CZZE_EXPORT zmq::recv_result_t recv_retry_on_eintr(T& socket, zmq::message_t& msg,
                                                    zmq::recv_flags flags = zmq::recv_flags::none);
 
 }  // namespace zmqzext
