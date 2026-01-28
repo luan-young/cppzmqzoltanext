@@ -43,6 +43,7 @@ endif()
 # ---------------------------------------------------------------------------------------
 
 option(CZZE_BUILD_TESTS "Build tests" OFF)
+option(CZZE_BUILD_EXAMPLES "Build examples" OFF)
 option(CZZE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 
 # ---------------------------------------------------------------------------------------
@@ -96,6 +97,14 @@ if(CZZE_BUILD_TESTS)
     set(INSTALL_GTEST OFF)
     FetchContent_MakeAvailable(googletest)
     add_subdirectory(tests)
+endif()
+
+# ---------------------------------------------------------------------------------------
+# Examples
+# ---------------------------------------------------------------------------------------
+
+if(CZZE_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 # ---------------------------------------------------------------------------------------
