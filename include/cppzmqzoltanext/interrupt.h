@@ -1,3 +1,26 @@
+/*
+MIT License
+
+Copyright (c) 2025 Luan Young
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 /**
  * @file interrupt.h
  * @brief Signal interrupt handling for graceful application shutdown
@@ -34,7 +57,6 @@
  * is set and can be checked by the application after the ZMQ wait operation. Then,
  * it is very important to set appropriate timeouts on all ZMQ calls.
  *
- * @details
  * Key features:
  * - Atomic flag for thread-safe interrupt detection
  * - Automatic storage and restoration of previous signal handlers
@@ -42,8 +64,13 @@
  * - Non-blocking interrupt checking
  * - Manual interrupt flag reset capability
  *
- * @author CppZmqZoltanExt Contributors
- * @date 2025
+ * @authors
+ * Luan Young (luanpy@gmail.com)
+ *
+ * @copyright 2025 Luan Young
+ *
+ * Distributed under the MIT License (MIT) (See accompanying file LICENSE
+ * or copy at http://opensource.org/licenses/MIT)
  */
 
 #pragma once

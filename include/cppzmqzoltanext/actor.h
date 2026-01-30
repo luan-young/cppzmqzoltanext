@@ -1,3 +1,26 @@
+/*
+MIT License
+
+Copyright (c) 2025 Luan Young
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 /**
  * @file actor.h
  * @brief Actor pattern implementation using ZeroMQ PAIR sockets
@@ -7,15 +30,7 @@
  * (running in its own thread) that runs a user-defined function and
  * communicates with the parent through ZeroMQ PAIR sockets.
  *
- * @details
- * Key features:
- * - Thread-safe concurrent execution with minimal synchronization
- * - Isolated computational units that don't share memory
- * - Message-based communication between parent and child threads
- * - Exception handling and propagation from child to parent during initialization
- * - Automatic cleanup and resource management
- *
- * ## Thread Safety
+ * Thread Safety
  *
  * The actor_t class is NOT thread-safe for most operations. The design aims to
  * avoid memory sharing between the parent and child threads, except for the child
@@ -28,13 +43,13 @@
  * dangling references. Pointers where the ownership is transferred to the user
  * function are also acceptable.
  *
- * ## Initialization Synchronization
+ * Initialization Synchronization
  *
  * The start() method blocks until the user function sends either a success or
  * failure signal. This ensures initialization of the actor is synchronized
  * with the calling thread.
  *
- * ## Exception Handling
+ * Exception Handling
  *
  * If an exception is thrown in the user function (other than zmq::error_t)
  * before sending the success signal, it will be captured and re-thrown in
@@ -43,7 +58,7 @@
  * exceptions within the user function. Still, the actor_t class will catch
  * unhandled exceptions and silently exit the thread to avoid crashing the application.
  *
- * ## Finalization Synchronization
+ * Finalization Synchronization
  *
  * The user function finalization is requested by the stop() method which can be called
  * explicitly or is implicitly by the destructor. The stop() method sends a stop request and waits
@@ -52,6 +67,22 @@
  * Usually, the user function communicates to the parent application that it has finished
  * its work (either by its own logic or by a previous request) and then the parent
  * application destroys the actor, starting the stop synchronization.
+ *
+ * @details
+ * Key features:
+ * - Thread-safe concurrent execution with minimal synchronization
+ * - Isolated computational units that don't share memory
+ * - Message-based communication between parent and child threads
+ * - Exception handling and propagation from child to parent during initialization
+ * - Automatic cleanup and resource management
+ *
+ * @authors
+ * Luan Young (luanpy@gmail.com)
+ *
+ * @copyright 2025 Luan Young
+ *
+ * Distributed under the MIT License (MIT) (See accompanying file LICENSE
+ * or copy at http://opensource.org/licenses/MIT)
  */
 
 #pragma once
