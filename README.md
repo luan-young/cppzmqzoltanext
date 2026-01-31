@@ -247,7 +247,7 @@ int main() {
 
 ## Documentation
 
-For detailed documentation, please refer to the [CppZmqZoltanExt Documentation](https://github.com/luan-young/cppzmqzoltanext/).
+For detailed documentation, please refer to the [CppZmqZoltanExt Documentation](https://luan-young.github.io/cppzmqzoltanext/).
 
 Additionally, you can explore the examples provided in the `examples` directory of the repository, build and run them.
 
