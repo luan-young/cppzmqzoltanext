@@ -1,0 +1,12 @@
+<map id="include/cppzmqzoltanext/loop.h" name="include/cppzmqzoltanext/loop.h">
+<area shape="rect" id="node1" title="Event loop for managing sockets and timers." alt="" coords="226,5,411,45"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,174,72,199"/>
+<area shape="rect" id="node3" title=" " alt="" coords="321,93,391,119"/>
+<area shape="rect" id="node4" title=" " alt="" coords="415,93,502,119"/>
+<area shape="rect" id="node5" title=" " alt="" coords="527,93,569,119"/>
+<area shape="rect" id="node6" title=" " alt="" coords="593,93,644,119"/>
+<area shape="rect" id="node7" title=" " alt="" coords="97,174,175,199"/>
+<area shape="rect" id="node8" title=" " alt="" coords="286,167,453,207"/>
+<area shape="rect" id="node9" href="$poller_8h.html" title="Event polling for monitoring multiple ZMQ sockets." alt="" coords="174,93,245,119"/>
+<area shape="rect" id="node10" title=" " alt="" coords="199,174,262,199"/>
+</map>

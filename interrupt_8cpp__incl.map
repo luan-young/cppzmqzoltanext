@@ -1,0 +1,10 @@
+<map id="src/interrupt.cpp" name="src/interrupt.cpp">
+<area shape="rect" id="node1" title="Signal interrupt handling for graceful application shutdown." alt="" coords="116,5,244,31"/>
+<area shape="rect" id="node2" href="$interrupt_8h.html" title="Signal interrupt handling for graceful application shutdown." alt="" coords="77,79,283,104"/>
+<area shape="rect" id="node3" title=" " alt="" coords="5,159,72,185"/>
+<area shape="rect" id="node5" href="$signal_8h.html" title="Signal definitions and utilities for actor inter&#45;thread communication." alt="" coords="307,79,381,104"/>
+<area shape="rect" id="node4" title=" " alt="" coords="97,152,263,192"/>
+<area shape="rect" id="node6" title=" " alt="" coords="288,159,344,185"/>
+<area shape="rect" id="node7" title=" " alt="" coords="368,159,443,185"/>
+<area shape="rect" id="node8" title=" " alt="" coords="467,159,546,185"/>
+</map>

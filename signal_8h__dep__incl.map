@@ -1,0 +1,6 @@
+<map id="include/cppzmqzoltanext/signal.h" name="include/cppzmqzoltanext/signal.h">
+<area shape="rect" id="node1" title="Signal definitions and utilities for actor inter&#45;thread communication." alt="" coords="105,5,290,45"/>
+<area shape="rect" id="node2" href="$actor_8cpp.html" title="Actor pattern implementation using ZeroMQ PAIR sockets." alt="" coords="5,93,109,119"/>
+<area shape="rect" id="node3" href="$interrupt_8cpp.html" title="Signal interrupt handling for graceful application shutdown." alt="" coords="133,93,261,119"/>
+<area shape="rect" id="node4" href="$signal_8cpp.html" title="Signal definitions and utilities for actor inter&#45;thread communication." alt="" coords="286,93,397,119"/>
+</map>
