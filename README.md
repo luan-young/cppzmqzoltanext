@@ -289,7 +289,7 @@ See detailed instructions in the [cppzmq](https://github.com/zeromq/cppzmq) repo
 
 ### CppZmqZoltanExt
 
-Build and install cppzmq from source by cmake.
+Build and install CppZmqZoltanExt from source by cmake.
 
 ```console
 $ git clone https://github.com/luan-young/cppzmqzoltanext.git
