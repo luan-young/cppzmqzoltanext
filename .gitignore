@@ -32,5 +32,8 @@ build/*
 *.out
 *.app
 
+# Documentation
+docs/html/
+
 # VS Code
 .vscode/
