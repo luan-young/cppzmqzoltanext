@@ -230,46 +230,45 @@ $(document).ready(function(){initNavTree('actor_8cpp_source.html',''); initResiz
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span> </div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>        <span class="keyword">auto</span> signal = success ? <a class="code hl_function" href="classzmqzext_1_1signal__t.html#ab92d8b2f97aa343a796aede665f6b57f">signal_t::create_success</a>() : <a class="code hl_class" href="classzmqzext_1_1signal__t.html">signal_t</a>::create_failure();</div>
 <div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>        <a class="code hl_function" href="helpers_8h.html#aa782b439eb730d32216c8822c1a3983b">send_retry_on_eintr</a>(*socket, signal, zmq::send_flags::none);  <span class="comment">// blocking</span></div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>    } <span class="keywordflow">catch</span> (zmq::error_t <span class="keyword">const</span>&amp;) {</div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    } <span class="keywordflow">catch</span> (...) {</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>        <span class="comment">// Save exception to be rethrown in start() if needed</span></div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>        {</div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>            std::lock_guard&lt;std::mutex&gt; lock(_exception_state-&gt;exception_mutex);</div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>            _exception_state-&gt;saved_exception = std::current_exception();</div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>        }</div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span> </div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>        <span class="keywordflow">try</span> {</div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>            <span class="keyword">auto</span> signal = <a class="code hl_function" href="classzmqzext_1_1signal__t.html#ae9352c4bb841d528743fa7aa9a221299">signal_t::create_failure</a>();</div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>            <a class="code hl_function" href="helpers_8h.html#aa782b439eb730d32216c8822c1a3983b">send_retry_on_eintr</a>(*socket, signal, zmq::send_flags::none);  <span class="comment">// blocking</span></div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>        } <span class="keywordflow">catch</span> (...) {</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>            <span class="comment">// Ignore exceptions during send in exception handler</span></div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>        }</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    }</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="comment">// Always close socket when done</span></div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    socket-&gt;close();</div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>}</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span> </div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>std::string actor_t::bind_to_unique_address() {</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    std::random_device rd;</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    std::mt19937 gen(rd());</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>    std::uniform_int_distribution&lt;&gt; dis(0, 999999);</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    std::string base_address = <span class="stringliteral">&quot;inproc://zmqzext-actor-&quot;</span> + std::to_string(<span class="keyword">reinterpret_cast&lt;</span>uintptr_t<span class="keyword">&gt;</span>(<span class="keyword">this</span>));</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span> </div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>) {</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>        <span class="keywordflow">try</span> {</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>            std::string address = base_address + <span class="stringliteral">&quot;-&quot;</span> + std::to_string(dis(gen));</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>            _parent_socket.bind(address);</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>            <span class="keywordflow">return</span> address;</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        } <span class="keywordflow">catch</span> (<span class="keyword">const</span> zmq::error_t&amp; e) {</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>            <span class="keywordflow">if</span> (e.num() != EADDRINUSE) {</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>                <span class="keywordflow">throw</span>;  <span class="comment">// Rethrow if it&#39;s not an address-in-use error</span></div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>            }</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>            <span class="comment">// If address is in use, loop will continue and try another random</span></div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>            <span class="comment">// suffix</span></div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>        }</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>    }</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>}</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>}  <span class="comment">// namespace zmqzext</span></div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>    } <span class="keywordflow">catch</span> (...) {</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>        <span class="comment">// Save exception to be rethrown in start() if needed</span></div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>        {</div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>            std::lock_guard&lt;std::mutex&gt; lock(_exception_state-&gt;exception_mutex);</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>            _exception_state-&gt;saved_exception = std::current_exception();</div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>        }</div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span> </div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>        <span class="keywordflow">try</span> {</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>            <span class="keyword">auto</span> signal = <a class="code hl_function" href="classzmqzext_1_1signal__t.html#ae9352c4bb841d528743fa7aa9a221299">signal_t::create_failure</a>();</div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>            <a class="code hl_function" href="helpers_8h.html#aa782b439eb730d32216c8822c1a3983b">send_retry_on_eintr</a>(*socket, signal, zmq::send_flags::none);  <span class="comment">// blocking</span></div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>        } <span class="keywordflow">catch</span> (...) {</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>            <span class="comment">// Ignore exceptions during send in exception handler</span></div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>        }</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    }</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <span class="comment">// Always close socket when done</span></div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    socket-&gt;close();</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>}</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span> </div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>std::string actor_t::bind_to_unique_address() {</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>    std::random_device rd;</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    std::mt19937 gen(rd());</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    std::uniform_int_distribution&lt;&gt; dis(0, 999999);</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>    std::string base_address = <span class="stringliteral">&quot;inproc://zmqzext-actor-&quot;</span> + std::to_string(<span class="keyword">reinterpret_cast&lt;</span>uintptr_t<span class="keyword">&gt;</span>(<span class="keyword">this</span>));</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span> </div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>) {</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>        <span class="keywordflow">try</span> {</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>            std::string address = base_address + <span class="stringliteral">&quot;-&quot;</span> + std::to_string(dis(gen));</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>            _parent_socket.bind(address);</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>            <span class="keywordflow">return</span> address;</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>        } <span class="keywordflow">catch</span> (<span class="keyword">const</span> zmq::error_t&amp; e) {</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>            <span class="keywordflow">if</span> (e.num() != EADDRINUSE) {</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>                <span class="keywordflow">throw</span>;  <span class="comment">// Rethrow if it&#39;s not an address-in-use error</span></div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>            }</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>            <span class="comment">// If address is in use, loop will continue and try another random</span></div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>            <span class="comment">// suffix</span></div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        }</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    }</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>}</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>}  <span class="comment">// namespace zmqzext</span></div>
 <div class="ttc" id="aactor_8h_html"><div class="ttname"><a href="actor_8h.html">actor.h</a></div><div class="ttdoc">Actor pattern implementation using ZeroMQ PAIR sockets.</div></div>
 <div class="ttc" id="aactor_8h_html_a4e46922a78c918ba8e014f9bd36ee7fb"><div class="ttname"><a href="actor_8h.html#a4e46922a78c918ba8e014f9bd36ee7fb">zmqzext::actor_fn_t</a></div><div class="ttdeci">std::function&lt; bool(zmq::socket_t &amp;)&gt; actor_fn_t</div><div class="ttdoc">Alias for a function type used to define actor behaviors.</div><div class="ttdef"><b>Definition:</b> <a href="actor_8h_source.html#l00121">actor.h:121</a></div></div>
 <div class="ttc" id="aclasszmqzext_1_1actor__t_html_a14e756c2b2de674e404339010cefae0f"><div class="ttname"><a href="classzmqzext_1_1actor__t.html#a14e756c2b2de674e404339010cefae0f">zmqzext::actor_t::start</a></div><div class="ttdeci">void start(actor_fn_t func)</div><div class="ttdoc">Starts the actor thread with the provided function.</div><div class="ttdef"><b>Definition:</b> <a href="actor_8cpp_source.html#l00066">actor.cpp:66</a></div></div>
