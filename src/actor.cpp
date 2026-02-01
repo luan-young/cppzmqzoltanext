@@ -56,6 +56,22 @@ actor_t::actor_t(zmq::context_t& context)
     _child_socket->connect(address);
 }
 
+actor_t::actor_t(actor_t&& other) noexcept { *this = std::move(other); }
+
+actor_t& actor_t::operator=(actor_t&& other) noexcept {
+    _parent_socket = std::move(other._parent_socket);
+    _child_socket = std::move(other._child_socket);
+    _exception_state = std::move(other._exception_state);
+    _started = other._started;
+    _stopped = other._stopped;
+    _timeout_on_destructor = other._timeout_on_destructor;
+
+    other._started = true;
+    other._stopped = true;
+
+    return *this;
+}
+
 actor_t::~actor_t() noexcept {
     try {
         stop(_timeout_on_destructor);
