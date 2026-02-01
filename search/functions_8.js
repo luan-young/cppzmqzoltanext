@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['_7eactor_5ft_0',['~actor_t',['../classzmqzext_1_1actor__t.html#a6056cd6540a89245f4d44dc55a19e593',1,'zmqzext::actor_t']]]
+  ['wait_0',['wait',['../classzmqzext_1_1poller__t.html#a246ea1594b46fe44dad0245035622bcb',1,'zmqzext::poller_t']]],
+  ['wait_5fall_1',['wait_all',['../classzmqzext_1_1poller__t.html#a4ae4dfae3b9646596ce2b58bfbdf080c',1,'zmqzext::poller_t']]]
 ];
