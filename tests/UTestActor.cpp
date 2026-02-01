@@ -38,6 +38,7 @@ public:
                     if (signal && signal->is_stop()) {
                         return true;
                     }
+                    socket.send(msg, zmq::send_flags::none);  // Echo back the message
                 }
             } catch (...) {
                 // Ignore exceptions and continue
@@ -412,6 +413,118 @@ TEST_F(UTestActorWithInterruptHandler, ActorsMaySetLoopToNotInterruptibleModeSoP
     zmq::message_t msg;
     auto result = actorSocket.recv(msg, zmq::recv_flags::none);
     EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(UTestActor, IsMoveConstructibleBeforeStart) {
+    actor_t actor{ctx};
+    std::string const msgStrToSend{"Test message"};
+
+    ASSERT_FALSE(actor.is_started());
+    ASSERT_FALSE(actor.is_stopped());
+
+    auto moved_actor = std::move(actor);
+
+    moved_actor.start(std::bind(&UTestActor::simpleActorFunction, this, std::placeholders::_1));
+
+    auto& emptySocket = actor.socket();
+    ASSERT_TRUE(actor.is_started());
+    ASSERT_TRUE(actor.is_stopped());
+    ASSERT_EQ(zmq::socket_t{}, emptySocket);
+
+    auto& socket = moved_actor.socket();
+    ASSERT_TRUE(moved_actor.is_started());
+    ASSERT_FALSE(moved_actor.is_stopped());
+    ASSERT_NE(zmq::socket_t{}, socket);
+
+    send_now_or_throw(socket, msgStrToSend);
+    zmq::message_t msg;
+    auto result = socket.recv(msg, zmq::recv_flags::none);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(msgStrToSend, msg.to_string());
+
+    EXPECT_TRUE(actor.stop());
+    EXPECT_TRUE(moved_actor.stop());
+
+    EXPECT_TRUE(moved_actor.is_started());
+    EXPECT_TRUE(moved_actor.is_stopped());
+}
+
+TEST_F(UTestActor, IsMoveConstructibleAfterStart) {
+    actor_t actor{ctx};
+    std::string const msgStrToSend{"Test message"};
+
+    ASSERT_FALSE(actor.is_started());
+    ASSERT_FALSE(actor.is_stopped());
+
+    actor.start(std::bind(&UTestActor::simpleActorFunction, this, std::placeholders::_1));
+
+    ASSERT_TRUE(actor.is_started());
+    ASSERT_FALSE(actor.is_stopped());
+
+    auto moved_actor = std::move(actor);
+
+    auto& emptySocket = actor.socket();
+    ASSERT_TRUE(actor.is_started());
+    ASSERT_TRUE(actor.is_stopped());
+    ASSERT_EQ(zmq::socket_t{}, emptySocket);
+
+    auto& socket = moved_actor.socket();
+    ASSERT_TRUE(moved_actor.is_started());
+    ASSERT_FALSE(moved_actor.is_stopped());
+    ASSERT_NE(zmq::socket_t{}, socket);
+
+    send_now_or_throw(socket, msgStrToSend);
+    zmq::message_t msg;
+    auto result = socket.recv(msg, zmq::recv_flags::none);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(msgStrToSend, msg.to_string());
+
+    EXPECT_TRUE(actor.stop());
+    EXPECT_TRUE(moved_actor.stop());
+
+    EXPECT_TRUE(moved_actor.is_started());
+    EXPECT_TRUE(moved_actor.is_stopped());
+}
+
+TEST_F(UTestActor, IsMoveAssignable) {
+    actor_t actor{ctx};
+    std::string const msgStrToSend{"Test message"};
+
+    ASSERT_FALSE(actor.is_started());
+    ASSERT_FALSE(actor.is_stopped());
+
+    actor.start(std::bind(&UTestActor::simpleActorFunction, this, std::placeholders::_1));
+
+    ASSERT_TRUE(actor.is_started());
+    ASSERT_FALSE(actor.is_stopped());
+
+    actor_t moved_actor{ctx};
+    ASSERT_FALSE(moved_actor.is_started());
+    ASSERT_FALSE(moved_actor.is_stopped());
+
+    moved_actor = std::move(actor);
+
+    auto& emptySocket = actor.socket();
+    ASSERT_TRUE(actor.is_started());
+    ASSERT_TRUE(actor.is_stopped());
+    ASSERT_EQ(zmq::socket_t{}, emptySocket);
+
+    auto& socket = moved_actor.socket();
+    ASSERT_TRUE(moved_actor.is_started());
+    ASSERT_FALSE(moved_actor.is_stopped());
+    ASSERT_NE(zmq::socket_t{}, socket);
+
+    send_now_or_throw(socket, msgStrToSend);
+    zmq::message_t msg;
+    auto result = socket.recv(msg, zmq::recv_flags::none);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(msgStrToSend, msg.to_string());
+
+    EXPECT_TRUE(actor.stop());
+    EXPECT_TRUE(moved_actor.stop());
+
+    EXPECT_TRUE(moved_actor.is_started());
+    EXPECT_TRUE(moved_actor.is_stopped());
 }
 
 // // Test socket communication

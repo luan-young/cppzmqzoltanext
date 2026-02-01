@@ -143,6 +143,63 @@ public:
     explicit actor_t(zmq::context_t& context);
 
     /**
+     * @brief Copy constructor is deleted
+     *
+     * Actors cannot be copied because they maintain exclusive ownership of the
+     * communication sockets and represent a unique execution thread. Copying
+     * would violate the single ownership principle and lead to resource
+     * conflicts. Use move semantics instead to transfer actor ownership.
+     */
+    actor_t(actor_t const&) = delete;
+
+    /**
+     * @brief Copy assignment operator is deleted
+     *
+     * Actors cannot be copy-assigned because they maintain exclusive ownership
+     * of the communication sockets and represent a unique execution thread.
+     * Copying would violate the single ownership principle and lead to resource
+     * conflicts. Use move semantics instead to transfer actor ownership.
+     */
+    actor_t& operator=(actor_t const&) = delete;
+
+    /**
+     * @brief Move constructor
+     *
+     * Transfers ownership of the actor's communication sockets and execution
+     * state from the source actor to this newly constructed actor. The actor object
+     * can be moved before or after being started. If moved before start(),
+     * the new actor can be started normally. If called after start(), the new
+     * actor continues the execution of the original actor's thread.
+     * The source actor is left in a valid but empty state where is_started() and
+     * is_stopped() return true. Calling stop() on the moved-from actor is a no-op
+     * so it can be called in ins destructor.
+     *
+     * @param other The source actor to move from. After the move, other is in
+     * a valid but empty state.
+     * @note Move operations are noexcept and do not throw exceptions
+     */
+    actor_t(actor_t&& other) noexcept;
+
+    /**
+     * @brief Move assignment operator
+     *
+     * Transfers ownership of the actor's communication sockets and execution
+     * state from the source actor to this actor. The actor object
+     * can be moved before or after being started. If moved before start(),
+     * the new actor can be started normally. If called after start(), the new
+     * actor continues the execution of the original actor's thread.
+     * The source actor is left in a valid but empty state where is_started() and
+     * is_stopped() return true. Calling stop() on the moved-from actor is a no-op
+     * so it can be called in ins destructor.
+     *
+     * @param other The source actor to move from. After the move, other is in
+     * a valid but empty state.
+     * @return Reference to this actor
+     * @note Move operations are noexcept and do not throw exceptions
+     */
+    actor_t& operator=(actor_t&& other) noexcept;
+
+    /**
      * @brief Destroys the actor_t object
      *
      * Calls stop with the configurable destructor timeout to avoid blocking forever.

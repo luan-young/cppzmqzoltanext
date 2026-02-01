@@ -584,6 +584,173 @@ TEST_F(UTestLoopWithInterruptHandler, IgnoresInterruptionWhenSetToNotInterruptib
     EXPECT_TRUE(timerRun);
 }
 
+// Copyability Tests
+TEST_F(UTestLoop, IsCopyConstructible) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+
+    // Copy construct from loop
+    auto loop_copy = loop;
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop_copy.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+}
+
+TEST_F(UTestLoop, IsCopyAssignable) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop_t loop2;
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+
+    // Copy assign loop to loop2
+    loop2 = loop;
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop2.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+}
+
+TEST_F(UTestLoop, CopyAssignmentSelfAssignmentIsNoop) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+
+    // Self-assignment should not cause issues
+    loop = loop;
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+}
+
+TEST_F(UTestLoop, CopiedLoopIsIndependent) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    ConnectedSocketsWithHandlers sockets2{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    sockets2.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop_t loop_copy;
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+    loop_copy = loop;
+
+    // Remove from copy
+    loop_copy.remove(*sockets.socketPull);
+    // Add to copy
+    loop_copy.add(*sockets2.socketPull,
+                  std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets2, _1, _2));
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+    send_now_or_throw(*sockets2.socketPush, msgStrToSend);
+
+    loop.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+
+    loop_copy.run();
+
+    ASSERT_EQ(maxMsgs, sockets2.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets2.messages[0].to_string());
+}
+
+// Moveability Tests
+TEST_F(UTestLoop, IsMoveConstructible) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop_t loop_temp;
+    loop_temp.add(*sockets.socketPull,
+                  std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+
+    // Move construct from loop_temp
+    auto loop_moved = std::move(loop_temp);
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop.run();  // original loop is empty, so should return immediately
+    ASSERT_EQ(0, sockets.messages.size());
+
+    loop_moved.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+}
+
+TEST_F(UTestLoop, IsMoveAssignable) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    ConnectedSocketsWithHandlers sockets2{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    sockets2.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop_t loop_temp;
+    loop_temp.add(*sockets.socketPull,
+                  std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+    loop.add(*sockets2.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets2, _1, _2));
+
+    // Move assign loop_temp to loop
+    loop = std::move(loop_temp);
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop_temp.run();  // original loop is empty, so should return immediately
+    ASSERT_EQ(0, sockets.messages.size());
+
+    loop.run();
+
+    ASSERT_EQ(maxMsgs, sockets.messages.size());
+    EXPECT_EQ(msgStrToSend, sockets.messages[0].to_string());
+}
+
+TEST_F(UTestLoop, MoveAssignmentSelfAssignmentIsNotWhatYouShouldExpect) {
+    ConnectedSocketsWithHandlers sockets{ctx};
+    size_t const maxMsgs = 1;
+    sockets.maxMsgs = maxMsgs;
+    std::string const msgStrToSend{"Test message"};
+
+    loop.add(*sockets.socketPull,
+             std::bind(&ConnectedSocketsWithHandlers::socketHandlerReceiveMaxMessages, &sockets, _1, _2));
+
+    // Self move-assignment: YOU PROBABLY SHOULD NOT DO THIS
+    loop = std::move(loop);
+
+    send_now_or_throw(*sockets.socketPush, msgStrToSend);
+
+    loop.run();  // loop is empty, so should return immediately
+
+    ASSERT_EQ(0, sockets.messages.size());
+}
+
 // Test multiple timers with identical timeouts firing simultaneously
 // Test invalid socket references
 // Test removing non-existent sockets and timers
