@@ -148,7 +148,6 @@ void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
 
         auto signal = success ? signal_t::create_success() : signal_t::create_failure();
         send_retry_on_eintr(*socket, signal, zmq::send_flags::none);  // blocking
-    } catch (zmq::error_t const&) {
     } catch (...) {
         // Save exception to be rethrown in start() if needed
         {
