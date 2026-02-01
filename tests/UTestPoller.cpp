@@ -452,4 +452,134 @@ TEST_F(UTestPollerWithInterruptHandler, WaitAllCallInNotInterruptibleModeIsNotTe
     EXPECT_FALSE(poller.terminated());
 }
 
+TEST_F(UTestPoller, IsCopyConstructible) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    poller.add(sockets.socketPull);
+    poller.set_interruptible(false);
+
+    auto poller_copy = poller;
+
+    EXPECT_EQ(poller.size(), poller_copy.size());
+    EXPECT_EQ(poller.is_interruptible(), poller_copy.is_interruptible());
+
+    poller.set_interruptible(true);
+    poller.remove(sockets.socketPull);
+
+    EXPECT_FALSE(poller_copy.is_interruptible());
+    EXPECT_EQ(1U, poller_copy.size());
+}
+
+TEST_F(UTestPoller, IsCopyAssignable) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+
+    poller.add(sockets.socketPull);
+    poller.set_interruptible(false);
+
+    poller_t poller2;
+    poller2 = poller;
+
+    EXPECT_EQ(poller.size(), poller2.size());
+    EXPECT_EQ(poller.is_interruptible(), poller2.is_interruptible());
+
+    poller.set_interruptible(true);
+    poller.remove(sockets.socketPull);
+
+    EXPECT_FALSE(poller2.is_interruptible());
+    EXPECT_EQ(1U, poller2.size());
+}
+
+TEST_F(UTestPoller, CopyAssignmentSelfAssignmentIsNoop) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    poller.add(sockets.socketPull);
+
+    // Self-assignment should not cause issues
+    poller = poller;
+
+    EXPECT_EQ(1U, poller.size());
+}
+
+TEST_F(UTestPoller, IsMoveConstructible) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+
+    poller.add(sockets.socketPull);
+    poller.set_interruptible(false);
+
+    auto poller_moved = std::move(poller);
+
+    // Verify the move worked
+    EXPECT_EQ(0U, poller.size());
+    EXPECT_EQ(1U, poller_moved.size());
+    EXPECT_FALSE(poller_moved.is_interruptible());
+}
+
+TEST_F(UTestPoller, IsMoveAssignable) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+
+    poller_t poller_temp;
+    poller_temp.add(sockets.socketPull);
+    poller_temp.set_interruptible(false);
+
+    poller = std::move(poller_temp);
+
+    // Verify the move assignment worked
+    EXPECT_EQ(0U, poller_temp.size());
+    EXPECT_EQ(1U, poller.size());
+    EXPECT_FALSE(poller.is_interruptible());
+}
+
+TEST_F(UTestPoller, MoveAssignmentSelfAssignmentIsNotWhatYouShouldExpect) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    poller.add(sockets.socketPull);
+
+    // Self move-assignment: YOU PROBABLY SHOULD NOT DO THIS
+    poller = std::move(poller);
+
+    EXPECT_EQ(0U, poller.size());
+}
+
+TEST_F(UTestPoller, CopiedPollerIsIndependent) {
+    ConnectedSocketsPullAndPush sockets1{ctx};
+    ConnectedSocketsPullAndPush sockets2{ctx};
+
+    poller_t poller_copy;
+    poller.add(sockets1.socketPull);
+    poller_copy = poller;
+
+    // Add another socket to original
+    poller.add(sockets2.socketPull);
+
+    // Copy should not be affected
+    EXPECT_EQ(1U, poller_copy.size());
+    EXPECT_EQ(2U, poller.size());
+}
+
+TEST_F(UTestPoller, CopiedPollerCanBeUsedIndependently) {
+    ConnectedSocketsPullAndPush sockets{ctx};
+    std::string const msgStrToSend{"Test message"};
+    zmq::socket_t nullSocket{};
+
+    poller_t poller_copy;
+    poller.add(sockets.socketPull);
+    poller_copy = poller;
+
+    send_now_or_throw(sockets.socketPush, msgStrToSend);
+    waitSocketHaveMsg(sockets.socketPull, std::chrono::milliseconds{2});
+
+    // Both pollers should be able to detect the ready socket
+    auto socket1 = poller.wait(std::chrono::milliseconds{1});
+    auto socket2 = poller_copy.wait(std::chrono::milliseconds{1});
+    EXPECT_EQ(sockets.socketPull, socket1);
+    EXPECT_EQ(sockets.socketPull, socket2);
+
+    // Read the message through only one returned socket
+    EXPECT_NO_THROW(recv_now_or_throw(socket1));
+    EXPECT_THROW(recv_now_or_throw(socket2), eagain_recv_exception);
+
+    // Both pollers should have no more messages to receive now
+    socket1 = poller.wait(std::chrono::milliseconds{1});
+    socket2 = poller_copy.wait(std::chrono::milliseconds{1});
+    EXPECT_EQ(nullSocket, socket1);
+    EXPECT_EQ(nullSocket, socket2);
+}
+
 }  // namespace zmqzext
