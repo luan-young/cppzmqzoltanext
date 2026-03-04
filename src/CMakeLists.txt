@@ -10,6 +10,7 @@ set(CZZE_SOURCES
 	signal.cpp
 	interrupt.cpp
 	helpers.cpp
+	zpl_config.cpp
 )
 
 set(CZZE_PUBLIC_HEADERS
@@ -19,6 +20,7 @@ set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/signal.h
 	../include/cppzmqzoltanext/interrupt.h
 	../include/cppzmqzoltanext/helpers.h
+	../include/cppzmqzoltanext/zpl_config.h
     ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
 )
 
