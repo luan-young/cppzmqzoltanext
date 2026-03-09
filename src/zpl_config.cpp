@@ -54,11 +54,9 @@ struct parsed_line_t {
     std::string value;
 };
 
-bool is_space(char ch) noexcept { return ch == ' ' || ch == '\t'; }
-
 std::string ltrim_copy(const std::string& text) {
     std::size_t start = 0;
-    while (start < text.size() && is_space(text[start])) {
+    while (start < text.size() && std::isblank(static_cast<unsigned char>(text[start]))) {
         ++start;
     }
     return text.substr(start);
@@ -66,7 +64,7 @@ std::string ltrim_copy(const std::string& text) {
 
 std::string rtrim_copy(const std::string& text) {
     std::size_t end = text.size();
-    while (end > 0 && is_space(text[end - 1])) {
+    while (end > 0 && std::isblank(static_cast<unsigned char>(text[end - 1]))) {
         --end;
     }
     return text.substr(0, end);
@@ -75,9 +73,8 @@ std::string rtrim_copy(const std::string& text) {
 std::string trim_copy(const std::string& text) { return rtrim_copy(ltrim_copy(text)); }
 
 bool is_valid_name_char(char ch) noexcept {
-    const auto uch = static_cast<unsigned char>(ch);
-    return std::isalnum(uch) != 0 || ch == '$' || ch == '-' || ch == '_' || ch == '@' || ch == '.' || ch == '&' ||
-           ch == '+' || ch == '/';
+    return std::isalnum(static_cast<unsigned char>(ch)) != 0 || ch == '$' || ch == '-' || ch == '_' || ch == '@' ||
+           ch == '.' || ch == '&' || ch == '+' || ch == '/';
 }
 
 std::vector<std::string> split_segments(const std::string& path, bool& valid) {
