@@ -289,7 +289,7 @@ TEST_F(ZplConfigTest, PropertyNamesWithValidCharacters) {
 TEST_F(ZplConfigTest, InvalidNameCharacterThrowsParseError) {
     std::istringstream input("bad*name = value");
 
-    EXPECT_THROW(zpl_config_t(input), zpl_parse_error);
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
 }
 
 TEST_F(ZplConfigTest, PropertyWithoutValue) {
