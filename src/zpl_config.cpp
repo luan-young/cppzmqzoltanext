@@ -145,36 +145,42 @@ std::vector<std::string> split_lines(const std::string& content) {
     return lines;
 }
 
-std::string parse_value_fragment(const std::string& fragment) {
+std::string parse_value_fragment(const std::string& fragment, std::size_t line_number) {
     const std::string without_leading = ltrim_copy(fragment);
-    const std::string trimmed = rtrim_copy(without_leading);
-    if (trimmed.size() >= 2) {
-        const char quote = trimmed.front();
-        if ((quote == '\'' || quote == '"') && trimmed.back() == quote) {
-            return trimmed.substr(1, trimmed.size() - 2);
-        }
+    if (without_leading.empty()) {
+        return "";
     }
-    return trimmed;
-}
 
-std::size_t find_comment_start(const std::string& content) {
-    char active_quote = '\0';
-    for (std::size_t i = 0; i < content.size(); ++i) {
-        const char ch = content[i];
-        if (active_quote == '\0') {
-            if (ch == '#') {
-                return i;
-            }
-            if (ch == '\'' || ch == '"') {
-                active_quote = ch;
-            }
-            continue;
+    const char first = without_leading.front();
+    if (first == '\'' || first == '"') {
+        const std::size_t closing_quote = without_leading.find(first, 1);
+        if (closing_quote == std::string::npos) {
+            throw zpl_parse_error("unterminated quoted value", line_number);
         }
-        if (ch == active_quote) {
-            active_quote = '\0';
+
+        const std::string value = without_leading.substr(1, closing_quote - 1);
+        const std::string trailing = without_leading.substr(closing_quote + 1);
+
+        std::size_t pos = 0;
+        while (pos < trailing.size() && std::isblank(static_cast<unsigned char>(trailing[pos]))) {
+            ++pos;
         }
+
+        if (pos == trailing.size()) {
+            return value;
+        }
+
+        if (trailing[pos] == '#') {
+            return value;
+        }
+
+        throw zpl_parse_error("invalid characters after quoted value", line_number);
     }
-    return std::string::npos;
+
+    const std::size_t comment_pos = without_leading.find('#');
+    const std::string raw_value =
+        (comment_pos == std::string::npos) ? without_leading : without_leading.substr(0, comment_pos);
+    return rtrim_copy(raw_value);
 }
 
 parsed_line_t parse_line(const std::string& line, std::size_t line_number) {
@@ -193,31 +199,38 @@ parsed_line_t parse_line(const std::string& line, std::size_t line_number) {
         break;
     }
 
-    const std::string content = line.substr(pos);
-    if (content.empty() || content.front() == '#') {
-        return {0, "", ""};
-    }
-
     if ((leading_spaces % 4U) != 0U) {
         throw zpl_parse_error("indentation must be divisible by 4 spaces", line_number);
     }
 
-    const std::size_t comment_pos = find_comment_start(content);
-    const std::string active = (comment_pos == std::string::npos) ? content : content.substr(0, comment_pos);
-    const std::size_t equal_pos = active.find('=');
+    const std::string content = line.substr(pos);
+    if (content.empty() || content.front() == '#') {
+        return {leading_spaces / 4U, "", ""};
+    }
+
+    const std::size_t equal_pos = content.find('=');
+    const std::size_t hash_pos = content.find('#');
 
     std::string name;
     std::string value;
     if (equal_pos == std::string::npos) {
+        const std::size_t comment_pos = content.find('#');
+        const std::string active = (comment_pos == std::string::npos) ? content : content.substr(0, comment_pos);
         name = trim_copy(active);
-        value.clear();
+    } else if (hash_pos != std::string::npos && hash_pos < equal_pos) {
+        const std::string active = content.substr(0, hash_pos);
+        name = trim_copy(active);
     } else {
-        name = trim_copy(active.substr(0, equal_pos));
-        value = parse_value_fragment(active.substr(equal_pos + 1));
+        name = trim_copy(content.substr(0, equal_pos));
+        value = parse_value_fragment(content.substr(equal_pos + 1), line_number);
     }
 
     if (name.empty()) {
         throw zpl_parse_error("property name is empty", line_number);
+    }
+
+    if (name.front() == '/' || name.back() == '/') {
+        throw zpl_parse_error("property name must not start or end with '/'", line_number);
     }
 
     for (char ch : name) {

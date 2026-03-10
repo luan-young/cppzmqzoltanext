@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
-#include "cppzmqzoltanext/zpl_config.h"
-#include <sstream>
-#include <fstream>
+
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+
+#include "cppzmqzoltanext/zpl_config.h"
 
 namespace zmqzext {
 
@@ -63,8 +65,7 @@ TEST_F(ZplConfigTest, ParsesMultipleProperties) {
     std::istringstream input(
         "key1 = value1\n"
         "key2 = value2\n"
-        "key3 = value3"
-    );
+        "key3 = value3");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("key1"));
@@ -119,14 +120,13 @@ TEST_F(ZplConfigTest, TryGetReturnsEmptyOptionalWhenNotFound) {
 }
 
 // ============================================================================
-// Comments and Empty Lines Tests
+// Comments Tests
 // ============================================================================
 
 TEST_F(ZplConfigTest, IgnoresCommentLines) {
     std::istringstream input(
         "# This is a comment\n"
-        "key = value"
-    );
+        "key = value");
     zpl_config_t config(input);
 
     EXPECT_FALSE(config.contains("#"));
@@ -134,22 +134,8 @@ TEST_F(ZplConfigTest, IgnoresCommentLines) {
     EXPECT_EQ(config.get("key"), "value");
 }
 
-TEST_F(ZplConfigTest, IgnoresEmptyLines) {
-    std::istringstream input(
-        "key1 = value1\n"
-        "\n"
-        "key2 = value2"
-    );
-    zpl_config_t config(input);
-
-    EXPECT_TRUE(config.contains("key1"));
-    EXPECT_TRUE(config.contains("key2"));
-}
-
 TEST_F(ZplConfigTest, IgnoresCommentAtEndOfLine) {
-    std::istringstream input(
-        "key = value # comment"
-    );
+    std::istringstream input("key = value # comment");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("key"));
@@ -159,13 +145,29 @@ TEST_F(ZplConfigTest, IgnoresCommentAtEndOfLine) {
 TEST_F(ZplConfigTest, CommentAfterNameWithoutValueIsIgnored) {
     std::istringstream input(
         "flag # feature toggle\n"
-        "key = value"
-    );
+        "key = value");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("flag"));
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("flag"), "");
+    EXPECT_EQ(config.get("key"), "value");
+}
+
+TEST_F(ZplConfigTest, CommentAfterNameWithoutSpaceIsIgnored) {
+    std::istringstream input("flag# feature toggle\n");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("flag"));
     EXPECT_EQ(config.get("flag"), "");
-    EXPECT_EQ(config.get("key"), "value");
+}
+
+TEST_F(ZplConfigTest, CommentAfterNameMayHaveEqualCharacter) {
+    std::istringstream input("flag# = this is not a value\n");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("flag"));
+    EXPECT_EQ(config.get("flag"), "");
 }
 
 // ============================================================================
@@ -204,15 +206,6 @@ TEST_F(ZplConfigTest, QuotedValueWithCommentsInside) {
     EXPECT_EQ(config.get("message"), "hello world # this is not a comment");
 }
 
-TEST_F(ZplConfigTest, UnmatchedQuoteArePartOfValue) {
-    // When quote doesn't match, it should be treated as unquoted
-    std::istringstream input("message = 'unmatched");
-    zpl_config_t config(input);
-
-    ASSERT_TRUE(config.contains("message"));
-    EXPECT_EQ(config.get("message"), "'unmatched");
-}
-
 TEST_F(ZplConfigTest, SingleQuoteInsideDoubleQuotedValue) {
     std::istringstream input("message = \"hello 'world'\"");
     zpl_config_t config(input);
@@ -229,9 +222,87 @@ TEST_F(ZplConfigTest, DoubleQuoteInsideSingleQuotedValue) {
     EXPECT_EQ(config.get("message"), "hello \"world\"");
 }
 
+TEST_F(ZplConfigTest, UnmatchedQuoteIsParseError) {
+    std::istringstream input("message = 'unmatched");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, UnmatchedQuoteIsParseError2) {
+    std::istringstream input("message = 'unmatched\"");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, QuotedValueAllowsTrailingWhitespace) {
+    std::istringstream input("key = \"value\"   ");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "value");
+}
+
+TEST_F(ZplConfigTest, QuotedValueAllowsCommentAfterClosingQuote) {
+    std::istringstream input("key = 'value'  # comment");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "value");
+}
+
+TEST_F(ZplConfigTest, QuotedValueAllowsImmediateCommentAfterClosingQuote) {
+    std::istringstream input("key = \"value\"#comment");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "value");
+}
+
+TEST_F(ZplConfigTest, QuotedValueWithTrailingCharactersIsParseError) {
+    std::istringstream input("key = 'value' trailing");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, QuotedValueWithTrailingCharactersBeforeCommentIsParseError) {
+    std::istringstream input("key = \"value\" trailing # comment");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, UnmatchedStartingSingleQuoteBeforeCommentIsParseError) {
+    std::istringstream input("key = 'value#this is a parse error");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, UnmatchedInnerSingleQuoteBeforeCommentTreatsHashAsComment) {
+    std::istringstream input("key = valu'e#this is a comment'");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "valu'e");
+}
+
+TEST_F(ZplConfigTest, UnmatchedStartingDoubleQuoteBeforeCommentIsParseError) {
+    std::istringstream input("key = \"value#this is a parse error");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, UnmatchedInnerDoubleQuoteBeforeCommentTreatsHashAsComment) {
+    std::istringstream input("key = valu\"e#this is a comment\"");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "valu\"e");
+}
+
 // ============================================================================
-// Whitespace Handling Tests
+// Whitespace Handling and Empty Lines Tests
 // ============================================================================
+
+TEST_F(ZplConfigTest, NoWhitespaceNeededAroundEquals) {
+    std::istringstream input("key=value");
+    zpl_config_t config(input);
+
+    ASSERT_TRUE(config.contains("key"));
+    EXPECT_EQ(config.get("key"), "value");
+}
 
 TEST_F(ZplConfigTest, TrimsWhitespaceAroundEquals) {
     std::istringstream input("key   =   value");
@@ -257,6 +328,46 @@ TEST_F(ZplConfigTest, StripsWhitespaceAfterUnquotedValue) {
     EXPECT_EQ(config.get("message"), "hello world");
 }
 
+TEST_F(ZplConfigTest, IgnoresEmptyLines) {
+    std::istringstream input(
+        "key1 = value1\n"
+        "\n"
+        "key2 = value2");
+    zpl_config_t config(input);
+
+    EXPECT_TRUE(config.contains("key1"));
+    EXPECT_TRUE(config.contains("key2"));
+}
+
+TEST_F(ZplConfigTest, IgnoresLinesWithOnlyWhitespaces) {
+    std::istringstream input(
+        "key1 = value1\n"
+        "    \n"
+        "key2 = value2");
+    zpl_config_t config(input);
+
+    EXPECT_TRUE(config.contains("key1"));
+    EXPECT_TRUE(config.contains("key2"));
+}
+
+TEST_F(ZplConfigTest, BlankLinesBadlyIndentedIsParsingError) {
+    std::istringstream input(
+        "key1 = value1\n"
+        "  \n"
+        "key2 = value2");
+
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, BlankLinesWithTabsIsParsingError) {
+    std::istringstream input(
+        "key1 = value1\n"
+        "\t\n"
+        "key2 = value2");
+
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
 // ============================================================================
 // Property Names Tests
 // ============================================================================
@@ -271,8 +382,7 @@ TEST_F(ZplConfigTest, PropertyNamesWithValidCharacters) {
         "with.dot = v6\n"
         "with&amper = v7\n"
         "with+plus = v8\n"
-        "path/to/file = v9"
-    );
+        "path/to/file = v9");
     zpl_config_t config(input);
 
     EXPECT_TRUE(config.contains("simple"));
@@ -307,8 +417,7 @@ TEST_F(ZplConfigTest, ParsesHierarchicalStructure) {
     std::istringstream input(
         "server\n"
         "    address = tcp://127.0.0.1\n"
-        "    port = 5555"
-    );
+        "    port = 5555");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -323,8 +432,7 @@ TEST_F(ZplConfigTest, ParsesNestedHierarchy) {
         "server\n"
         "    options\n"
         "        reuse_addr = true\n"
-        "        linger = 1000"
-    );
+        "        linger = 1000");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server/options/reuse_addr"));
@@ -342,11 +450,20 @@ TEST_F(ZplConfigTest, ForwardSlashInNameBuildsHierarchy) {
     EXPECT_EQ(config.get("foo/bar"), "value");
 }
 
+TEST_F(ZplConfigTest, NameWithLeadingSlashIsParseError) {
+    std::istringstream input("/foo/bar = value");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
+TEST_F(ZplConfigTest, NameWithTrailingSlashIsParseError) {
+    std::istringstream input("foo/bar/ = value");
+    EXPECT_THROW((void)zpl_config_t(input), zpl_parse_error);
+}
+
 TEST_F(ZplConfigTest, PathWithLeadingSlash) {
     std::istringstream input(
         "database\n"
-        "    host = localhost"
-    );
+        "    host = localhost");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("/database/host"));
@@ -357,8 +474,7 @@ TEST_F(ZplConfigTest, GetChildConfiguration) {
     std::istringstream input(
         "server\n"
         "    address = tcp://127.0.0.1\n"
-        "    port = 5555"
-    );
+        "    port = 5555");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -371,8 +487,7 @@ TEST_F(ZplConfigTest, GetChildConfigurationWithPath) {
     std::istringstream input(
         "server\n"
         "    options\n"
-        "        reuse_addr = true"
-    );
+        "        reuse_addr = true");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server/options"));
@@ -384,8 +499,7 @@ TEST_F(ZplConfigTest, GetChildOfChildConfiguration) {
     std::istringstream input(
         "server\n"
         "    options\n"
-        "        reuse_addr = true"
-    );
+        "        reuse_addr = true");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -402,8 +516,7 @@ TEST_F(ZplConfigTest, GetChildOfChildConfiguration) {
 TEST_F(ZplConfigTest, ChildConfigurationNameAndValue) {
     std::istringstream input(
         "server = main\n"
-        "    address = localhost"
-    );
+        "    address = localhost");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -415,8 +528,7 @@ TEST_F(ZplConfigTest, ChildConfigurationNameAndValue) {
 TEST_F(ZplConfigTest, ConfigurationWithoutValueReturnsEmptyString) {
     std::istringstream input(
         "server\n"
-        "    address = localhost"
-    );
+        "    address = localhost");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -427,8 +539,7 @@ TEST_F(ZplConfigTest, ConfigurationWithoutValueReturnsEmptyString) {
 TEST_F(ZplConfigTest, ChildThrowsWhenNotFound) {
     std::istringstream input(
         "server\n"
-        "    address = value"
-    );
+        "    address = value");
     zpl_config_t config(input);
 
     EXPECT_THROW(config.child("nonexistent"), zpl_property_not_found);
@@ -437,8 +548,7 @@ TEST_F(ZplConfigTest, ChildThrowsWhenNotFound) {
 TEST_F(ZplConfigTest, TryChildReturnsChildWhenFound) {
     std::istringstream input(
         "server\n"
-        "    address = value"
-    );
+        "    address = value");
     zpl_config_t config(input);
 
     auto result = config.try_child("server");
@@ -448,8 +558,7 @@ TEST_F(ZplConfigTest, TryChildReturnsChildWhenFound) {
 TEST_F(ZplConfigTest, TryChildReturnsEmptyOptionalWhenNotFound) {
     std::istringstream input(
         "server\n"
-        "    address = value"
-    );
+        "    address = value");
     zpl_config_t config(input);
 
     auto result = config.try_child("nonexistent");
@@ -460,8 +569,7 @@ TEST_F(ZplConfigTest, ChildrenPreserveRootSiblingOrder) {
     std::istringstream input(
         "first = one\n"
         "second = two\n"
-        "third = three"
-    );
+        "third = three");
     zpl_config_t config(input);
 
     const auto children = config.children();
@@ -476,8 +584,7 @@ TEST_F(ZplConfigTest, ChildrenPreserveNestedSiblingOrder) {
         "server\n"
         "    first = one\n"
         "    second = two\n"
-        "    third = three"
-    );
+        "    third = three");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("server"));
@@ -491,8 +598,7 @@ TEST_F(ZplConfigTest, ChildrenPreserveNestedSiblingOrder) {
 TEST_F(ZplConfigTest, LeadingSlashIsIgnoredByChildLookup) {
     std::istringstream input(
         "database\n"
-        "    host = localhost"
-    );
+        "    host = localhost");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("/database/host"));
@@ -509,8 +615,7 @@ TEST_F(ZplConfigTest, LoadFromStream) {
     std::istringstream input(
         "server\n"
         "    address = tcp://127.0.0.1\n"
-        "    port = 5555"
-    );
+        "    port = 5555");
 
     zpl_config_t config;
     config.load(input);
@@ -535,8 +640,7 @@ TEST_F(ZplConfigTest, LoadFromFile) {
 
 TEST_F(ZplConfigTest, LoadFromFileThrowsOnInvalidPath) {
     zpl_config_t config;
-    EXPECT_THROW(config.load_from_file("/nonexistent/path/file.zpl"),
-                 std::ios_base::failure);
+    EXPECT_THROW(config.load_from_file("/nonexistent/path/file.zpl"), std::ios_base::failure);
 }
 
 TEST_F(ZplConfigTest, LoadClearsExistingConfiguration) {
@@ -571,16 +675,14 @@ TEST_F(ZplConfigTest, ChildHandleRemainsValidAfterParentReload) {
     std::istringstream input(
         "server\n"
         "    host = localhost\n"
-        "        timeout = 1000"
-    );
+        "        timeout = 1000");
     zpl_config_t config(input);
     ASSERT_TRUE(config.contains("server"));
     zpl_config_t server = config.child("server");
 
     std::istringstream replacement(
         "other\n"
-        "    value = 1"
-    );
+        "    value = 1");
     config.load(replacement);
 
     ASSERT_TRUE(server.contains("host"));
@@ -597,8 +699,7 @@ TEST_F(ZplConfigTest, LoadProvidesStrongExceptionGuaranteeOnParseError) {
 
     std::istringstream invalid_input(
         "dup = one\n"
-        "dup = two"
-    );
+        "dup = two");
     EXPECT_THROW(config.load(invalid_input), zpl_parse_error);
 
     ASSERT_TRUE(config.contains("server/host"));
@@ -614,8 +715,7 @@ TEST_F(ZplConfigTest, LoadFromFileProvidesStrongExceptionGuaranteeOnParseError) 
 
     std::string invalid_file = create_temp_zpl_file(
         "dup = one\n"
-        "dup = two"
-    );
+        "dup = two");
     EXPECT_THROW(config.load_from_file(invalid_file), zpl_parse_error);
 
     ASSERT_TRUE(config.contains("server/host"));
@@ -708,15 +808,14 @@ TEST_F(ZplConfigTest, OnlyComments) {
     std::istringstream input(
         "# Comment 1\n"
         "# Comment 2\n"
-        "# Comment 3"
-    );
+        "# Comment 3");
     zpl_config_t config(input);
 
     EXPECT_FALSE(config.contains("anything"));
 }
 
-TEST_F(ZplConfigTest, OnlyWhitespace) {
-    std::istringstream input("   \n  \n   ");
+TEST_F(ZplConfigTest, OnlyWhitespaceDifferentIndentation) {
+    std::istringstream input("    \n\n    ");
     zpl_config_t config(input);
 
     EXPECT_FALSE(config.contains("anything"));
@@ -725,8 +824,7 @@ TEST_F(ZplConfigTest, OnlyWhitespace) {
 TEST_F(ZplConfigTest, DuplicatePropertyNameAtSameLevelThrowsParseError) {
     std::istringstream input(
         "key = v1\n"
-        "key = v2"
-    );
+        "key = v2");
 
     zpl_config_t config;
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -736,8 +834,7 @@ TEST_F(ZplConfigTest, DuplicatePropertyNameInNestedLevelThrowsParseError) {
     std::istringstream input(
         "server\n"
         "    port = 5555\n"
-        "    port = 5556"
-    );
+        "    port = 5556");
 
     zpl_config_t config;
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -748,9 +845,8 @@ TEST_F(ZplConfigTest, MultilineNotSupported) {
     // This test documents expected behavior
     std::istringstream input(
         "line1 = 'value\n"
-        "continuation'\n" // this is not a real value continuation, so it has an invalid ' character in name property
-        "line2 = value2"
-    );
+        "continuation'\n"  // this is not a real value continuation, so it has an invalid ' character in name property
+        "line2 = value2");
 
     zpl_config_t config;
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -760,8 +856,7 @@ TEST_F(ZplConfigTest, CaseSensitiveProperties) {
     // This test documents whether property names are case-sensitive
     std::istringstream input(
         "Key = value1\n"
-        "key = value2"
-    );
+        "key = value2");
     zpl_config_t config(input);
 
     ASSERT_TRUE(config.contains("Key"));
@@ -773,8 +868,7 @@ TEST_F(ZplConfigTest, CaseSensitiveProperties) {
 TEST_F(ZplConfigTest, IndentationWithTabsThrowsParseError) {
     std::istringstream input(
         "server\n"
-        "\tport = 5555"
-    );
+        "\tport = 5555");
     zpl_config_t config;
 
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -783,8 +877,7 @@ TEST_F(ZplConfigTest, IndentationWithTabsThrowsParseError) {
 TEST_F(ZplConfigTest, IndentationNotDivisibleByFourThrowsParseError) {
     std::istringstream input(
         "server\n"
-        "   port = 5555"
-    );
+        "   port = 5555");
     zpl_config_t config;
 
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -793,8 +886,7 @@ TEST_F(ZplConfigTest, IndentationNotDivisibleByFourThrowsParseError) {
 TEST_F(ZplConfigTest, InvalidIndentationTransitionThrowsParseError) {
     std::istringstream input(
         "server\n"
-        "        port = 5555"
-    );
+        "        port = 5555");
     zpl_config_t config;
 
     EXPECT_THROW(config.load(input), zpl_parse_error);
@@ -803,8 +895,7 @@ TEST_F(ZplConfigTest, InvalidIndentationTransitionThrowsParseError) {
 TEST_F(ZplConfigTest, ParseErrorIncludesViolationLine) {
     std::istringstream input(
         "key = value\n"
-        "   invalid_indent = true"
-    );
+        "   invalid_indent = true");
     zpl_config_t config;
 
     try {
@@ -875,8 +966,7 @@ TEST_F(ZplConfigTest, ComplexZmlConfiguration) {
         "    port = 5432\n"
         "    credentials\n"
         "        user = admin\n"
-        "        password = secret"
-    );
+        "        password = secret");
     zpl_config_t config(input);
 
     EXPECT_EQ(config.get("server/address"), "tcp://127.0.0.1:5555");
@@ -888,8 +978,7 @@ TEST_F(ZplConfigTest, ConfigurationWithMixedQuoting) {
     std::istringstream input(
         "name = 'John Doe'\n"
         "email = \"user@example.com\"\n"
-        "city = San Francisco"
-    );
+        "city = San Francisco");
     zpl_config_t config(input);
 
     EXPECT_EQ(config.get("name"), "John Doe");
@@ -897,4 +986,4 @@ TEST_F(ZplConfigTest, ConfigurationWithMixedQuoting) {
     EXPECT_EQ(config.get("city"), "San Francisco");
 }
 
-} // namespace zmqzext
+}  // namespace zmqzext
