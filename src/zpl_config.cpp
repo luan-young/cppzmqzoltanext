@@ -23,7 +23,15 @@ SOFTWARE.
 */
 /**
  * @file zpl_config.cpp
- * @brief ZPL (ZeroMQ Property Language) configuration API
+ * @brief ZPL (ZeroMQ Property Language) parser
+ *
+ * @authors
+ * Luan Young (luanpy@gmail.com)
+ *
+ * @copyright 2026 Luan Young
+ *
+ * Distributed under the MIT License (MIT) (See accompanying file LICENSE
+ * or copy at http://opensource.org/licenses/MIT)
  */
 
 #include "cppzmqzoltanext/zpl_config.h"
@@ -38,22 +46,28 @@ SOFTWARE.
 namespace zmqzext {
 
 namespace {
+/// Empty string used for safe return references when no node is available.
 std::string const k_empty_string;
 
+/// Internal node representation for the parsed ZPL tree.
 struct zpl_node_t {
-    std::string name;
-    std::string value;
-    bool explicitly_defined{false};
-    std::vector<std::shared_ptr<zpl_node_t>> ordered_children;
-    std::unordered_map<std::string, std::shared_ptr<zpl_node_t>> children_by_name;
+    std::string name;                ///< Node name segment
+    std::string value;               ///< Raw string value
+    bool explicitly_defined{false};  ///< True when this node appears explicitly in the input.
+                                     ///< Nodes created only as path containers (e.g., from "a/b")
+                                     ///< keep this false unless their own property line is present.
+    std::vector<std::shared_ptr<zpl_node_t>> ordered_children;                      ///< Children in source order
+    std::unordered_map<std::string, std::shared_ptr<zpl_node_t>> children_by_name;  ///< Fast lookup
 };
 
+/// Parsed line information after trimming, indentation checks and value parsing.
 struct parsed_line_t {
-    std::size_t indent_level;
-    std::string name;
-    std::string value;
+    std::size_t indent_level;  ///< Indentation level (4-space units)
+    std::string name;          ///< Property name (may include '/')
+    std::string value;         ///< Property value (possibly empty)
 };
 
+/// Trim leading whitespace.
 std::string ltrim_copy(const std::string& text) {
     std::size_t start = 0;
     while (start < text.size() && std::isblank(static_cast<unsigned char>(text[start]))) {
@@ -62,6 +76,7 @@ std::string ltrim_copy(const std::string& text) {
     return text.substr(start);
 }
 
+/// Trim trailing whitespace.
 std::string rtrim_copy(const std::string& text) {
     std::size_t end = text.size();
     while (end > 0 && std::isblank(static_cast<unsigned char>(text[end - 1]))) {
@@ -70,13 +85,16 @@ std::string rtrim_copy(const std::string& text) {
     return text.substr(0, end);
 }
 
+/// Trim both leading and trailing whitespace.
 std::string trim_copy(const std::string& text) { return rtrim_copy(ltrim_copy(text)); }
 
+/// Validate a single character against the ZPL name grammar.
 bool is_valid_name_char(char ch) noexcept {
     return std::isalnum(static_cast<unsigned char>(ch)) != 0 || ch == '$' || ch == '-' || ch == '_' || ch == '@' ||
            ch == '.' || ch == '&' || ch == '+' || ch == '/';
 }
 
+/// Split a path string into segments, honoring leading '/' and rejecting empty segments.
 std::vector<std::string> split_segments(const std::string& path, bool& valid) {
     valid = true;
     std::vector<std::string> segments;
@@ -112,6 +130,7 @@ std::vector<std::string> split_segments(const std::string& path, bool& valid) {
     return segments;
 }
 
+/// Split content into lines, supporting LF, CR, or CRLF endings.
 std::vector<std::string> split_lines(const std::string& content) {
     std::vector<std::string> lines;
 
@@ -145,6 +164,7 @@ std::vector<std::string> split_lines(const std::string& content) {
     return lines;
 }
 
+/// Parse a value fragment, honoring quoted values and inline comments.
 std::string parse_value_fragment(const std::string& fragment, std::size_t line_number) {
     const std::string without_leading = ltrim_copy(fragment);
     if (without_leading.empty()) {
@@ -183,6 +203,7 @@ std::string parse_value_fragment(const std::string& fragment, std::size_t line_n
     return rtrim_copy(raw_value);
 }
 
+/// Parse a single ZPL line into indentation, name, and value.
 parsed_line_t parse_line(const std::string& line, std::size_t line_number) {
     std::size_t pos = 0;
     std::size_t leading_spaces = 0;
@@ -242,6 +263,7 @@ parsed_line_t parse_line(const std::string& line, std::size_t line_number) {
     return {leading_spaces / 4U, std::move(name), std::move(value)};
 }
 
+/// Parse the entire input stream into a ZPL tree root node.
 std::shared_ptr<zpl_node_t> parse_stream(std::istream& input) {
     std::ostringstream buffer;
     buffer << input.rdbuf();
@@ -315,6 +337,7 @@ std::shared_ptr<zpl_node_t> parse_stream(std::istream& input) {
     return root;
 }
 
+/// Find a node by path segments starting from a given node.
 std::shared_ptr<zpl_node_t> find_node(const std::shared_ptr<zpl_node_t>& start, const std::string& path) {
     if (!start) {
         return nullptr;
@@ -341,7 +364,7 @@ std::shared_ptr<zpl_node_t> find_node(const std::shared_ptr<zpl_node_t>& start, 
 }  // namespace
 
 struct zpl_config_t::impl_t {
-    std::shared_ptr<zpl_node_t> node;
+    std::shared_ptr<zpl_node_t> node;  ///< Root node for the parsed tree
 };
 
 zpl_parse_error::zpl_parse_error(std::string message, std::size_t line) : zpl_error(std::move(message)), _line(line) {}
