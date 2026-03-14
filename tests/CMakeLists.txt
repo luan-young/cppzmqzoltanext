@@ -2,6 +2,7 @@ add_executable(cppzmqzoltanext_Tests
     UTestPoller.cpp
     UTestLoop.cpp
     UTestActor.cpp
+    UTestZplConfig.cpp
     utils.h
 )
 
