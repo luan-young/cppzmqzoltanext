@@ -1,0 +1,6 @@
+<map id="zmqzext::zpl_error" name="zmqzext::zpl_error">
+<area shape="rect" id="node1" title="Base exception for ZPL configuration errors." alt="" coords="99,79,241,104"/>
+<area shape="rect" id="node3" href="$classzmqzext_1_1zpl__parse__error.html" title="Exception thrown when a badly formatted ZPL input is encountered during parsing." alt="" coords="5,152,153,192"/>
+<area shape="rect" id="node4" href="$classzmqzext_1_1zpl__property__not__found.html" title="Exception thrown when a requested property is missing." alt="" coords="177,152,344,192"/>
+<area shape="rect" id="node2" title=" " alt="" coords="101,5,239,31"/>
+</map>

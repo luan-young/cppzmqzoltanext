@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['signal_5ft_0',['signal_t',['../classzmqzext_1_1signal__t.html',1,'zmqzext']]]
+  ['poller_5ft_0',['poller_t',['../classzmqzext_1_1poller__t.html',1,'zmqzext']]]
 ];

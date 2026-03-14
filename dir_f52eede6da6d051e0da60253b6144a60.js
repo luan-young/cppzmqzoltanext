@@ -5,5 +5,6 @@ var dir_f52eede6da6d051e0da60253b6144a60 =
     [ "interrupt.h", "interrupt_8h.html", "interrupt_8h" ],
     [ "loop.h", "loop_8h.html", "loop_8h" ],
     [ "poller.h", "poller_8h.html", "poller_8h" ],
-    [ "signal.h", "signal_8h.html", "signal_8h" ]
+    [ "signal.h", "signal_8h.html", "signal_8h" ],
+    [ "zpl_config.h", "zpl__config_8h.html", "zpl__config_8h" ]
 ];

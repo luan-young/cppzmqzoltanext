@@ -29,31 +29,41 @@ var NAVTREE =
       [ "Interrupt Handling", "index.html#autotoc_md2", null ],
       [ "Poller", "index.html#autotoc_md3", null ],
       [ "Event Loop", "index.html#autotoc_md4", null ],
-      [ "Actor Pattern", "index.html#autotoc_md5", null ]
+      [ "Actor Pattern", "index.html#autotoc_md5", null ],
+      [ "ZPL Configuration", "index.html#autotoc_md6", null ]
     ] ],
-    [ "Example Usage", "index.html#autotoc_md6", null ],
-    [ "Documentation", "index.html#autotoc_md7", null ],
-    [ "Building and Installing", "index.html#autotoc_md8", [
-      [ "Dependencies", "index.html#autotoc_md9", [
-        [ "libzmq", "index.html#autotoc_md10", null ],
-        [ "cppzmq", "index.html#autotoc_md11", null ]
+    [ "Examples", "index.html#autotoc_md7", [
+      [ "Actor/Event Loop Example", "index.html#autotoc_md8", null ],
+      [ "ZPL Configuration Example", "index.html#autotoc_md9", null ]
+    ] ],
+    [ "Documentation", "index.html#autotoc_md10", null ],
+    [ "Building and Installing", "index.html#autotoc_md11", [
+      [ "Dependencies", "index.html#autotoc_md12", [
+        [ "libzmq", "index.html#autotoc_md13", null ],
+        [ "cppzmq", "index.html#autotoc_md14", null ]
       ] ],
-      [ "CppZmqZoltanExt", "index.html#autotoc_md12", null ],
-      [ "Using CppZmqZoltanExt in Your CMake Project", "index.html#autotoc_md13", null ]
+      [ "CppZmqZoltanExt", "index.html#autotoc_md15", null ],
+      [ "Using CppZmqZoltanExt in Your CMake Project", "index.html#autotoc_md16", null ]
     ] ],
-    [ "Contributing", "index.html#autotoc_md14", null ],
-    [ "Licensing", "index.html#autotoc_md15", null ],
+    [ "Contributing", "index.html#autotoc_md17", null ],
+    [ "Licensing", "index.html#autotoc_md18", null ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],
+      [ "Class Hierarchy", "hierarchy.html", "hierarchy" ],
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", null ],
         [ "Functions", "functions_func.html", null ],
+        [ "Variables", "functions_vars.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
     ] ],
     [ "Files", "files.html", [
-      [ "File List", "files.html", "files_dup" ]
+      [ "File List", "files.html", "files_dup" ],
+      [ "File Members", "globals.html", [
+        [ "All", "globals.html", null ],
+        [ "Variables", "globals_vars.html", null ]
+      ] ]
     ] ]
   ] ]
 ];

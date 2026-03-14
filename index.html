@@ -139,8 +139,19 @@ Actor Pattern</h2>
 <li><b>Graceful Termination</b>: Coordinated shutdown protocol ensures clean resource cleanup</li>
 <li><b>Memory Safety</b>: Minimal shared state between threads reduces concurrency bugs</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md6"></a>
-Example Usage</h1>
+<h2><a class="anchor" id="autotoc_md6"></a>
+ZPL Configuration</h2>
+<p>The ZPL Configuration module parses ZPL (ZeroMQ Property Language) files into a navigable tree of properties, offering a simple read-only API for configuration access and traversal.</p>
+<ul>
+<li><b>Stream and File Parsing</b>: Load configuration data from input streams or file paths</li>
+<li><b>Hierarchical Navigation</b>: Access nested sections and properties via relative paths</li>
+<li><b>Ordered Children</b>: Preserve and iterate over properties in source order</li>
+<li><b>Flexible Lookup</b>: Throwing and non-throwing retrieval methods for safe access</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md7"></a>
+Examples</h1>
+<h2><a class="anchor" id="autotoc_md8"></a>
+Actor/Event Loop Example</h2>
 <p>This example demonstrates a complete application using the core features of CppZmqZoltanExt:</p>
 <ul>
 <li>Interrupt handling for graceful shutdown</li>
@@ -333,15 +344,101 @@ Example Usage</h1>
 <div class="ttc" id="aloop_8h_html"><div class="ttname"><a href="loop_8h.html">loop.h</a></div><div class="ttdoc">Event loop for managing sockets and timers.</div></div>
 <div class="ttc" id="aloop_8h_html_afc56290231b10a83199067ad3bb170a3"><div class="ttname"><a href="loop_8h.html#afc56290231b10a83199067ad3bb170a3">zmqzext::timer_id_t</a></div><div class="ttdeci">std::size_t timer_id_t</div><div class="ttdoc">Unique identifier for timer instances.</div><div class="ttdef"><b>Definition:</b> <a href="loop_8h_source.html#l00078">loop.h:78</a></div></div>
 <div class="ttc" id="asignal_8h_html"><div class="ttname"><a href="signal_8h.html">signal.h</a></div><div class="ttdoc">Signal definitions and utilities for actor inter-thread communication.</div></div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md7"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md9"></a>
+ZPL Configuration Example</h2>
+<p>This example shows how to parse a ZPL configuration and navigate the resulting tree.</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="zpl__config_8h.html">cppzmqzoltanext/zpl_config.h</a>&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="preprocessor">#include &lt;cassert&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;sstream&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">using namespace </span>zmqzext;</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">int</span> main() {</div>
+<div class="line">    <span class="keyword">const</span> <span class="keywordtype">char</span>* zpl_text = R<span class="stringliteral">&quot;ZPL(</span></div>
+<div class="line"><span class="stringliteral"># This is a sample ZPL configuration for a telemetry gateway</span></div>
+<div class="line"><span class="stringliteral">app</span></div>
+<div class="line"><span class="stringliteral">    name = &quot;ZPL&#39;s Example Telemetry Gateway&quot;</span></div>
+<div class="line"><span class="stringliteral">    environment = production # values can be &#39;production&#39;, &#39;staging&#39;, &#39;development&#39;</span></div>
+<div class="line"><span class="stringliteral">    logging</span></div>
+<div class="line"><span class="stringliteral">        # Indented comment</span></div>
+<div class="line"><span class="stringliteral">        level = info</span></div>
+<div class="line"><span class="stringliteral">        outputs/0 = stdout</span></div>
+<div class="line"><span class="stringliteral">        outputs/1 = file</span></div>
+<div class="line"><span class="stringliteral">        file</span></div>
+<div class="line"><span class="stringliteral">            path = /var/log/telemetry-gw.log</span></div>
+<div class="line"><span class="stringliteral">            rotate</span></div>
+<div class="line"><span class="stringliteral">                size_mb = 50</span></div>
+<div class="line"><span class="stringliteral">                keep = 5</span></div>
+<div class="line"><span class="stringliteral">network</span></div>
+<div class="line"><span class="stringliteral">    http</span></div>
+<div class="line"><span class="stringliteral">        host = 0.0.0.0</span></div>
+<div class="line"><span class="stringliteral">        port = 8080</span></div>
+<div class="line"><span class="stringliteral">    grpc</span></div>
+<div class="line"><span class="stringliteral">        host = 127.0.0.1</span></div>
+<div class="line"><span class="stringliteral">        port = 50051</span></div>
+<div class="line"><span class="stringliteral">rules</span></div>
+<div class="line"><span class="stringliteral">    sampling</span></div>
+<div class="line"><span class="stringliteral">        default = 0.1</span></div>
+<div class="line"><span class="stringliteral">        per_device/device-123 = 0.5</span></div>
+<div class="line"><span class="stringliteral">)ZPL&quot;;</span></div>
+<div class="line"><span class="stringliteral"></span> </div>
+<div class="line"><span class="stringliteral">    std::istringstream input(zpl_text);</span></div>
+<div class="line"><span class="stringliteral">    <a class="code hl_class" href="classzmqzext_1_1zpl__config__t.html">zpl_config_t</a> root = zpl_config_t::from_stream(input);</span></div>
+<div class="line"><span class="stringliteral"></span> </div>
+<div class="line"><span class="stringliteral">    </span><span class="comment">// Basic access (relative paths from root)</span></div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;app.name: &quot;</span> &lt;&lt; root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a82d73b79278ecda313aa24279ccfc70d">get</a>(<span class="stringliteral">&quot;app/name&quot;</span>) &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;http.port: &quot;</span> &lt;&lt; root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a82d73b79278ecda313aa24279ccfc70d">get</a>(<span class="stringliteral">&quot;network/http/port&quot;</span>) &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Non-throwing access</span></div>
+<div class="line">    <span class="keyword">auto</span> maybe_rotations = root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a6d6ba420771f8db7c2f38ca90120bdad">try_get</a>(<span class="stringliteral">&quot;app/logging/file/rotate/keep&quot;</span>);</div>
+<div class="line">    <span class="keywordflow">if</span> (maybe_rotations) {</div>
+<div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;log.rotate.keep: &quot;</span> &lt;&lt; *maybe_rotations &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Default value when missing</span></div>
+<div class="line">    std::string region = root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a43a91140816e980e974096e42c232da2">get_or</a>(<span class="stringliteral">&quot;app/region&quot;</span>, <span class="stringliteral">&quot;us-east-1&quot;</span>);</div>
+<div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;region: &quot;</span> &lt;&lt; region &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Navigate to a child node and enumerate its children</span></div>
+<div class="line">    <a class="code hl_class" href="classzmqzext_1_1zpl__config__t.html">zpl_config_t</a> logging = root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#ae5fcdd8320bfced2506398565d7be73a">child</a>(<span class="stringliteral">&quot;app/logging&quot;</span>);</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; child : logging.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a969732cd56a3207272e965999e86b1cd">children</a>()) {</div>
+<div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;logging child: &quot;</span> &lt;&lt; child.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a3a7b580e330eb0d53d6490c91dd8c0d0">name</a>() &lt;&lt; <span class="stringliteral">&quot; = &quot;</span> &lt;&lt; child.value() &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line">    }</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Check existence</span></div>
+<div class="line">    assert(root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a13998fad2d08a6d08b1b15eca95e9d3f">contains</a>(<span class="stringliteral">&quot;rules/sampling/per_device/device-123&quot;</span>));</div>
+<div class="line">    assert(!root.<a class="code hl_function" href="classzmqzext_1_1zpl__config__t.html#a13998fad2d08a6d08b1b15eca95e9d3f">contains</a>(<span class="stringliteral">&quot;rules/sampling/per_device/device-999&quot;</span>));</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordflow">return</span> 0;</div>
+<div class="line">}</div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html">zmqzext::zpl_config_t</a></div><div class="ttdoc">ZPL configuration tree loaded from text or file.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8h_source.html#l00137">zpl_config.h:137</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a13998fad2d08a6d08b1b15eca95e9d3f"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a13998fad2d08a6d08b1b15eca95e9d3f">zmqzext::zpl_config_t::contains</a></div><div class="ttdeci">bool contains(const std::string &amp;path) const noexcept</div><div class="ttdoc">Check if a path exists.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00418">zpl_config.cpp:418</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a3a7b580e330eb0d53d6490c91dd8c0d0"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a3a7b580e330eb0d53d6490c91dd8c0d0">zmqzext::zpl_config_t::name</a></div><div class="ttdeci">const std::string &amp; name() const noexcept</div><div class="ttdoc">Get the node name.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00404">zpl_config.cpp:404</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a43a91140816e980e974096e42c232da2"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a43a91140816e980e974096e42c232da2">zmqzext::zpl_config_t::get_or</a></div><div class="ttdeci">std::string get_or(const std::string &amp;path, std::string default_value) const noexcept</div><div class="ttdoc">Get a property value or return a default.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00438">zpl_config.cpp:438</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a6d6ba420771f8db7c2f38ca90120bdad"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a6d6ba420771f8db7c2f38ca90120bdad">zmqzext::zpl_config_t::try_get</a></div><div class="ttdeci">std::optional&lt; std::string &gt; try_get(const std::string &amp;path) const noexcept</div><div class="ttdoc">Try to get a property value by path.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00430">zpl_config.cpp:430</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a82d73b79278ecda313aa24279ccfc70d"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a82d73b79278ecda313aa24279ccfc70d">zmqzext::zpl_config_t::get</a></div><div class="ttdeci">const std::string &amp; get(const std::string &amp;path) const</div><div class="ttdoc">Get a property value by path.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00422">zpl_config.cpp:422</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_a969732cd56a3207272e965999e86b1cd"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#a969732cd56a3207272e965999e86b1cd">zmqzext::zpl_config_t::children</a></div><div class="ttdeci">std::vector&lt; zpl_config_t &gt; children() const noexcept</div><div class="ttdoc">Get direct children of this node.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00468">zpl_config.cpp:468</a></div></div>
+<div class="ttc" id="aclasszmqzext_1_1zpl__config__t_html_ae5fcdd8320bfced2506398565d7be73a"><div class="ttname"><a href="classzmqzext_1_1zpl__config__t.html#ae5fcdd8320bfced2506398565d7be73a">zmqzext::zpl_config_t::child</a></div><div class="ttdeci">zpl_config_t child(const std::string &amp;path) const</div><div class="ttdoc">Get a child node by path.</div><div class="ttdef"><b>Definition:</b> <a href="zpl__config_8cpp_source.html#l00446">zpl_config.cpp:446</a></div></div>
+<div class="ttc" id="azpl__config_8h_html"><div class="ttname"><a href="zpl__config_8h.html">zpl_config.h</a></div><div class="ttdoc">ZPL (ZeroMQ Property Language) parser.</div></div>
+</div><!-- fragment --><p>Output:</p>
+<div class="fragment"><div class="line">app.name: ZPL&#39;s Example Telemetry Gateway</div>
+<div class="line">http.port: 8080</div>
+<div class="line">log.rotate.keep: 5</div>
+<div class="line">region: us-east-1</div>
+<div class="line">logging child: level = info</div>
+<div class="line">logging child: outputs = </div>
+<div class="line">logging child: file = </div>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md10"></a>
 Documentation</h1>
 <p>For detailed documentation, please refer to the <a href="https://luan-young.github.io/cppzmqzoltanext/">CppZmqZoltanExt Documentation</a>.</p>
 <p>Additionally, you can explore the examples provided in the <code>examples</code> directory of the repository, build and run them.</p>
-<h1><a class="anchor" id="autotoc_md8"></a>
+<h1><a class="anchor" id="autotoc_md11"></a>
 Building and Installing</h1>
-<h2><a class="anchor" id="autotoc_md9"></a>
+<h2><a class="anchor" id="autotoc_md12"></a>
 Dependencies</h2>
-<h3><a class="anchor" id="autotoc_md10"></a>
+<h3><a class="anchor" id="autotoc_md13"></a>
 libzmq</h3>
 <ol type="1">
 <li>Build and install libzmq from source by cmake.</li>
@@ -356,7 +453,7 @@ libzmq</h3>
 <li>Optionally, you can install libzmq using your system's package manager.</li>
 </ol>
 <p>See detailed instructions in the <a href="https://github.com/zeromq/libzmq">libzmq</a> repository.</p>
-<h3><a class="anchor" id="autotoc_md11"></a>
+<h3><a class="anchor" id="autotoc_md14"></a>
 cppzmq</h3>
 <p>Build and install cppzmq from source by cmake.</p>
 <div class="fragment"><div class="line">$ git clone https://github.com/zeromq/cppzmq.git</div>
@@ -366,7 +463,7 @@ cppzmq</h3>
 <div class="line">$ cmake --build build</div>
 <div class="line">$ sudo cmake --install build</div>
 </div><!-- fragment --><p>See detailed instructions in the <a href="https://github.com/zeromq/cppzmq">cppzmq</a> repository.</p>
-<h2><a class="anchor" id="autotoc_md12"></a>
+<h2><a class="anchor" id="autotoc_md15"></a>
 CppZmqZoltanExt</h2>
 <p>Build and install CppZmqZoltanExt from source by cmake.</p>
 <div class="fragment"><div class="line">$ git clone https://github.com/luan-young/cppzmqzoltanext.git</div>
@@ -377,16 +474,16 @@ CppZmqZoltanExt</h2>
 <div class="line">$ sudo cmake --install build</div>
 </div><!-- fragment --><p>Run the tests (if built):</p>
 <div class="fragment"><div class="line">$ ctest --test-dir build</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md13"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md16"></a>
 Using CppZmqZoltanExt in Your CMake Project</h2>
 <p>To use CppZmqZoltanExt in your CMake project, you can use the following snippet in your <code>CMakeLists.txt</code>:</p>
 <div class="fragment"><div class="line">find_package(cppzmqzoltanext REQUIRED)</div>
 <div class="line">target_link_libraries(your_target PRIVATE cppzmqzoltanext::cppzmqzoltanext)</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md14"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md17"></a>
 Contributing</h1>
 <p>Contributions are welcome! As this is an early-stage project, your feedback and contributions can help shape its development.</p>
 <p>Please feel free to submit issues and pull requests on the <a href="https://github.com/luan-young/cppzmqzoltanext">GitHub repository</a>.</p>
-<h1><a class="anchor" id="autotoc_md15"></a>
+<h1><a class="anchor" id="autotoc_md18"></a>
 Licensing</h1>
 <p>CppZmqZoltanExt is licensed under the MIT License. See the <a href="https://github.com/luan-young/cppzmqzoltanext/blob/master/LICENSE">LICENSE</a> file for details. </p>
 </div></div><!-- PageDoc -->
