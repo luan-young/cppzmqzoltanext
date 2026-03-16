@@ -165,7 +165,7 @@ $(document).ready(function(){initNavTree('actor_8h_source.html',''); initResizab
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>        std::exception_ptr saved_exception;</div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>    };</div>
 <div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span> </div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <span class="keywordtype">void</span> execute(actor_fn_t func, std::unique_ptr&lt;zmq::socket_t&gt; socket,</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> execute(actor_fn_t func, std::unique_ptr&lt;zmq::socket_t&gt; socket,</div>
 <div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>                 std::shared_ptr&lt;SharedExceptionState&gt; exception_state) <span class="keyword">noexcept</span>;</div>
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span> </div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    std::string bind_to_unique_address();</div>

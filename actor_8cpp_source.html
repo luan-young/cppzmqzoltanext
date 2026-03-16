@@ -166,8 +166,8 @@ $(document).ready(function(){initNavTree('actor_8cpp_source.html',''); initResiz
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>        <span class="keywordflow">throw</span> std::runtime_error(<span class="stringliteral">&quot;Actor already started&quot;</span>);</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    }</div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    std::thread thread([<span class="keyword">this</span>, exception_state = _exception_state, func, <a class="code hl_function" href="classzmqzext_1_1actor__t.html#a947c40b4e1fa5f22194ce2e22bf1700c">socket</a> = std::move(_child_socket)]() <span class="keyword">mutable</span> {</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>        this-&gt;execute(func, std::move(<a class="code hl_function" href="classzmqzext_1_1actor__t.html#a947c40b4e1fa5f22194ce2e22bf1700c">socket</a>), exception_state);</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    std::thread thread([&amp;func, &amp;<a class="code hl_function" href="classzmqzext_1_1actor__t.html#a947c40b4e1fa5f22194ce2e22bf1700c">socket</a> = _child_socket, &amp;exception_state = _exception_state]() {</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>        actor_t::execute(func, std::move(<a class="code hl_function" href="classzmqzext_1_1actor__t.html#a947c40b4e1fa5f22194ce2e22bf1700c">socket</a>), exception_state);</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>    });</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    thread.detach();  <span class="comment">// Thread will run independently</span></div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
@@ -249,8 +249,8 @@ $(document).ready(function(){initNavTree('actor_8cpp_source.html',''); initResiz
 <div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    } <span class="keywordflow">catch</span> (...) {</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>        <span class="comment">// Save exception to be rethrown in start() if needed</span></div>
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>        {</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            std::lock_guard&lt;std::mutex&gt; lock(_exception_state-&gt;exception_mutex);</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            _exception_state-&gt;saved_exception = std::current_exception();</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            std::lock_guard&lt;std::mutex&gt; lock(exception_state-&gt;exception_mutex);</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            exception_state-&gt;saved_exception = std::current_exception();</div>
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>        }</div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span> </div>
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>        <span class="keywordflow">try</span> {</div>
