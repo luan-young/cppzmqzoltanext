@@ -84,8 +84,8 @@ void actor_t::start(actor_fn_t func) {
         throw std::runtime_error("Actor already started");
     }
 
-    std::thread thread([this, exception_state = _exception_state, func, socket = std::move(_child_socket)]() mutable {
-        this->execute(func, std::move(socket), exception_state);
+    std::thread thread([&func, &socket = _child_socket, &exception_state = _exception_state]() {
+        actor_t::execute(func, std::move(socket), exception_state);
     });
     thread.detach();  // Thread will run independently
 
@@ -167,8 +167,8 @@ void actor_t::execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
     } catch (...) {
         // Save exception to be rethrown in start() if needed
         {
-            std::lock_guard<std::mutex> lock(_exception_state->exception_mutex);
-            _exception_state->saved_exception = std::current_exception();
+            std::lock_guard<std::mutex> lock(exception_state->exception_mutex);
+            exception_state->saved_exception = std::current_exception();
         }
 
         try {

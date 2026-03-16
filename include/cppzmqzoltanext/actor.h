@@ -297,7 +297,7 @@ private:
      * @param socket The socket to use for communication, takes ownership
      * @param exception_state The shared exception state for error handling
      */
-    void execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
+    static void execute(actor_fn_t func, std::unique_ptr<zmq::socket_t> socket,
                  std::shared_ptr<SharedExceptionState> exception_state) noexcept;
 
     /**
