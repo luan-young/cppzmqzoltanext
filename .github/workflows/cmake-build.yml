@@ -2,9 +2,9 @@ name: CMake Build
 
 on:
   push:
-    branches: [ "setupCI" ]
+    branches: [ "testCI" ]
   pull_request:
-    branches: [ "setupCI" ]
+    branches: [ "testCI" ]
 
 env:
   BUILD_TYPE: Release
