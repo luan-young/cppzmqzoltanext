@@ -6,5 +6,6 @@ var dir_68267d1309a1af8e8297ef4c3efbcdba =
     [ "loop.cpp", "loop_8cpp.html", null ],
     [ "poller.cpp", "poller_8cpp.html", null ],
     [ "signal.cpp", "signal_8cpp.html", null ],
+    [ "version.cpp", "version_8cpp.html", "version_8cpp" ],
     [ "zpl_config.cpp", "zpl__config_8cpp.html", "zpl__config_8cpp" ]
 ];
