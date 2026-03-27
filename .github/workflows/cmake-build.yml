@@ -1,0 +1,28 @@
+name: CMake Build
+
+on:
+  push:
+    branches: [ "setupCI" ]
+  pull_request:
+    branches: [ "setupCI" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          cmake -B ${{workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCZZE_BUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cmake --build ${{workspace}}/build --config ${{ env.BUILD_TYPE }}
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir ${{workspace}}/build --config ${{ env.BUILD_TYPE }} --output-on-failure
