@@ -11,6 +11,14 @@ set(CZZE_SOURCES
 	interrupt.cpp
 	helpers.cpp
 	zpl_config.cpp
+	version.cpp
+)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext)
+configure_file(
+    ${CMAKE_SOURCE_DIR}/cmake/version_config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/version_config.h
+    @ONLY
 )
 
 set(CZZE_PUBLIC_HEADERS
@@ -21,6 +29,8 @@ set(CZZE_PUBLIC_HEADERS
 	../include/cppzmqzoltanext/interrupt.h
 	../include/cppzmqzoltanext/helpers.h
 	../include/cppzmqzoltanext/zpl_config.h
+	../include/cppzmqzoltanext/version.h
+    ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/version_config.h
     ${CMAKE_CURRENT_BINARY_DIR}/../include/cppzmqzoltanext/czze_export.h
 )
 
