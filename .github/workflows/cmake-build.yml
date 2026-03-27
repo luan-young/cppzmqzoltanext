@@ -17,12 +17,12 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -B ${{workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCZZE_BUILD_TESTS=ON
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCZZE_BUILD_TESTS=ON
 
       - name: Build
         run: |
-          cmake --build ${{workspace}}/build --config ${{ env.BUILD_TYPE }}
+          cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
 
       - name: Run Tests
         run: |
-          ctest --test-dir ${{workspace}}/build --config ${{ env.BUILD_TYPE }} --output-on-failure
+          ctest --test-dir ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }} --output-on-failure
