@@ -61,4 +61,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          ctest --test-dir build --config ${{ env.BUILD_TYPE }} --output-on-failure
+          ctest --test-dir build --build-config ${{ env.BUILD_TYPE }} --output-on-failure
