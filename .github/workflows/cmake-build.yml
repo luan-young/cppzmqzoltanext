@@ -31,8 +31,8 @@ jobs:
             -DLIBZMQ_WERROR=OFF \
             -DENABLE_DRAFTS=OFF \
             -DENABLE_CURVE=OFF \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-          cmake --build libzmq-build --config ${BUILDTYPE} -j ${THREADS}
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build libzmq-build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
           echo "LIBZMQ=${PWD}/libzmq-build" >> ${GITHUB_ENV}
 
       - name: Get cppzmq
