@@ -46,8 +46,8 @@ jobs:
         run: |
           cmake -S cppzmq-${{ env.CPPZMQ_VERSION }} -B cppzmq-build \
             -DCPPZMQ_BUILD_TESTS=OFF \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-          cmake --build cppzmq-build --config ${BUILDTYPE} -j ${THREADS}
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build cppzmq-build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
           echo "CPPZMQ=${PWD}/cppzmq-build" >> ${GITHUB_ENV}
 
       - name: Build cppzmqzoltanext
@@ -57,7 +57,7 @@ jobs:
           cmake -S . -B build \
             -DCZZE_BUILD_TESTS=ON \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-          cmake --build build --config ${{ env.BUILD_TYPE }}
+          cmake --build build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
 
       - name: Run Tests
         run: |
