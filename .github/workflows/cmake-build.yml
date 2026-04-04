@@ -8,6 +8,9 @@ on:
 
 env:
   BUILD_TYPE: Release
+  LIBZMQ_VERSION: 4.3.5
+  CPPZMQ_VERSION: 4.11.0
+  THREADS: 2
 
 jobs:
   build:
@@ -15,14 +18,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure CMake
+      - name: Get libzmq
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCZZE_BUILD_TESTS=ON
+          curl -L https://github.com/zeromq/libzmq/archive/refs/tags/v${{ env.LIBZMQ_VERSION }}.tar.gz -o libzmq.tar.gz
+          tar -xvzf libzmq.tar.gz
 
-      - name: Build
+      - name: Build libzmq
         run: |
-          cmake --build ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }}
+          cmake -S libzmq-${{ env.LIBZMQ_VERSION }} -B libzmq-build \
+            -DWITH_PERF_TOOL=OFF \
+            -DZMQ_BUILD_TESTS=OFF \
+            -DLIBZMQ_WERROR=OFF \
+            -DENABLE_DRAFTS=OFF \
+            -DENABLE_CURVE=OFF \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+          cmake --build libzmq-build --config ${BUILDTYPE} -j ${THREADS}
+          echo "LIBZMQ=${PWD}/libzmq-build" >> ${GITHUB_ENV}
+
+      - name: Get cppzmq
+        run: |
+          curl -L https://github.com/zeromq/cppzmq/archive/refs/tags/v${{ env.CPPZMQ_VERSION }}.tar.gz -o cppzmq.tar.gz
+          tar -xvzf cppzmq.tar.gz
+
+      - name: Build cppzmq
+        env:
+          CMAKE_PREFIX_PATH: ${{ env.LIBZMQ }}
+        run: |
+          cmake -S cppzmq-${{ env.CPPZMQ_VERSION }} -B cppzmq-build \
+            -DCPPZMQ_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+          cmake --build cppzmq-build --config ${BUILDTYPE} -j ${THREADS}
+          echo "CPPZMQ=${PWD}/cppzmq-build" >> ${GITHUB_ENV}
+
+      - name: Build cppzmqzoltanext
+        env:
+          CMAKE_PREFIX_PATH: ${{ env.LIBZMQ }}:${{ env.CPPZMQ }}
+        run: |
+          cmake -S . -B build \
+            -DCZZE_BUILD_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Run Tests
         run: |
-          ctest --test-dir ${{github.workspace}}/build --config ${{ env.BUILD_TYPE }} --output-on-failure
+          ctest --test-dir build --config ${{ env.BUILD_TYPE }} --output-on-failure
