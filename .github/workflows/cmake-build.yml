@@ -7,14 +7,20 @@ on:
     branches: [ "testCI" ]
 
 env:
-  BUILD_TYPE: Debug
   LIBZMQ_VERSION: 4.3.5
   CPPZMQ_VERSION: 4.11.0
   THREADS: 2
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        build_type: [Debug, Release]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +37,8 @@ jobs:
             -DLIBZMQ_WERROR=OFF \
             -DENABLE_DRAFTS=OFF \
             -DENABLE_CURVE=OFF \
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-          cmake --build libzmq-build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build libzmq-build --config ${{ matrix.build_type }} -j ${{ env.THREADS }}
           echo "LIBZMQ=${PWD}/libzmq-build" >> ${GITHUB_ENV}
 
       - name: Get cppzmq
@@ -46,8 +52,8 @@ jobs:
         run: |
           cmake -S cppzmq-${{ env.CPPZMQ_VERSION }} -B cppzmq-build \
             -DCPPZMQ_BUILD_TESTS=OFF \
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-          cmake --build cppzmq-build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build cppzmq-build --config ${{ matrix.build_type }} -j ${{ env.THREADS }}
           echo "CPPZMQ=${PWD}/cppzmq-build" >> ${GITHUB_ENV}
 
       - name: Build cppzmqzoltanext
@@ -56,9 +62,9 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCZZE_BUILD_TESTS=ON \
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-          cmake --build build --config ${{ env.BUILD_TYPE }} -j ${{ env.THREADS }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          cmake --build build --config ${{ matrix.build_type }} -j ${{ env.THREADS }}
 
       - name: Run Tests
         run: |
-          ctest --test-dir build --build-config ${{ env.BUILD_TYPE }} --output-on-failure
+          ctest --test-dir build --build-config ${{ matrix.build_type }} --output-on-failure
