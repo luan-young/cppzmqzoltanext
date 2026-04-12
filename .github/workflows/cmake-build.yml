@@ -7,7 +7,7 @@ on:
     branches: [ "testCI" ]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
   LIBZMQ_VERSION: 4.3.5
   CPPZMQ_VERSION: 4.11.0
   THREADS: 2
